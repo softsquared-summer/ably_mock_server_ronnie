@@ -99,12 +99,4 @@ fabric.properties
 # Sonarlint plugin
 .idea/sonarlint
 
-# vscode setting
-.vscode/
-
-# test images
-images/
-
 # End of https://www.gitignore.io/api/phpstorm,composer
-
-/appPdos/DatabasePdo.php
