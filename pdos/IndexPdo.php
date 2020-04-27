@@ -62,7 +62,8 @@ function isValidUser($id, $pw){
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
-    $st=null;$pdo = null;
+    $st=null;
+    $pdo = null;
 
     return intval($res[0]["exist"]);
 
@@ -70,18 +71,51 @@ function isValidUser($id, $pw){
 
 
 // CREATE
-//    function addMaintenance($message){
-//        $pdo = pdoSqlConnect();
-//        $query = "INSERT INTO MAINTENANCE (MESSAGE) VALUES (?);";
-//
-//        $st = $pdo->prepare($query);
-//        $st->execute([$message]);
-//
-//        $st = null;
-//        $pdo = null;
-//
-//    }
+    function createUser($userType,
+                        $email,
+                        $password,
+                        $name,
+                        $phone,
+                        $dateOfBirth,
+                        $AgreeOnService,
+                        $AgreeOnPrivate){
+        $pdo = pdoSqlConnect();
+        $query = "INSERT INTO User (userType, email, password, name, phone, dateOfBirth, AgreeOnService, AgreeOnPrivate) VALUES (?, ? ,?, ?, ?, ?, ?, ?);";
 
+        $st = $pdo->prepare($query);
+        $st->execute([$userType,
+                        $email,
+                        $password,
+                        $name,
+                        $phone,
+                        $dateOfBirth,
+                        $AgreeOnService,
+                        $AgreeOnPrivate]);
+
+        $st = null;
+        $pdo = null;
+
+    }
+
+
+//    READ
+
+    function isRedundantEmail($email){
+        $pdo = pdoSqlConnect();
+        $query = "SELECT EXISTS(SELECT * FROM User WHERE email=?) AS exist;";
+
+
+        $st = $pdo->prepare($query);
+        //    $st->execute([$param,$param]);
+        $st->execute([$email]);
+        $st->setFetchMode(PDO::FETCH_ASSOC);
+        $res = $st->fetchAll();
+
+        $st=null;
+        $pdo = null;
+
+        return intval($res[0]["exist"]);
+    }
 
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){

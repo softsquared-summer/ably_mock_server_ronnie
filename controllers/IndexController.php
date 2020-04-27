@@ -1,7 +1,8 @@
 <?php
 require 'function.php';
+require  'loginFunction.php';
 
-const JWT_SECRET_KEY = "TEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEY";
+const JWT_SECRET_KEY = "Ronnie's Secret key";
 
 $res = (Object)Array();
 header('Content-Type: json');
