@@ -1,6 +1,6 @@
 <?php
 require 'function.php';
-require  'loginFunction.php';
+require 'registerFunction.php';
 
 const JWT_SECRET_KEY = "Ronnie's Secret key";
 

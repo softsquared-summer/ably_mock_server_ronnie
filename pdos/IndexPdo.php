@@ -99,7 +99,6 @@ function isValidUser($id, $pw){
 
 
 //    READ
-
     function isRedundantEmail($email){
         $pdo = pdoSqlConnect();
         $query = "SELECT EXISTS(SELECT * FROM User WHERE email=?) AS exist;";
@@ -116,6 +115,24 @@ function isValidUser($id, $pw){
 
         return intval($res[0]["exist"]);
     }
+
+
+//    READ
+function getUserIdxByEmail($email){
+    $pdo = pdoSqlConnect();
+    $query = "select userIdx from User where email=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$email]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;
+    $pdo = null;
+
+    return intval($res[0]);
+}
+
 
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){

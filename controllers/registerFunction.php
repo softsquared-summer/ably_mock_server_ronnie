@@ -20,7 +20,7 @@ function isValidEmailForm($email)
 
 function isValidPasswordForm($password)
 {
-    return preg_match("^[A-Z]{1,10}$", $password);
+    return preg_match("/^.{8,16}$/", $password);
 }
 
 function isValidPhoneForm($phone)
@@ -30,7 +30,10 @@ function isValidPhoneForm($phone)
 
 function isValidBirthForm($dateOfBirth)
 {
-    return preg_match("/^(19[0-9][0-9]|20\d{2})\.(0[0-9]|1[0-2])\.(0[1-9]|[1-2][0-9]|3[0-1])$/", $dateOfBirth);
+    if (is_null($dateOfBirth)){
+        return true;
+    }
+    return preg_match("/^(19[0-9][0-9]|20\d{2})(0[0-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])$/", $dateOfBirth);
 }
 
 function isYorN($item)

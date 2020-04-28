@@ -74,12 +74,13 @@ function getTodayByTimeStamp()
     return date("Y-m-d H:i:s");
 }
 
-function getJWToken($email, $pw, $secretKey)
+function getJWToken($userIdx, $email, $password, $secretKey)
 {
     $data = array(
         'date' => (string)getTodayByTimeStamp(),
-        'email' => (string)$id,
-        'pw' => (string)$pw
+        'userIdx' => (string)$userIdx,
+        'email' => (string)$email,
+        'password' => (string)$password
     );
 
 //    echo json_encode($data);

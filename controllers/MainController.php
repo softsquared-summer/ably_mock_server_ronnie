@@ -1,6 +1,6 @@
 <?php
 require 'function.php';
-require  'loginFunction.php';
+require 'registerFunction.php';
 
 
 const JWT_SECRET_KEY = "Ronnie's Secret key";
@@ -46,7 +46,7 @@ try {
             // jwt 유효성 검사
             http_response_code(200);
 
-            if(!isValidUser($req->id, $req->pw)){
+            if (!isValidUser($req->id, $req->pw)) {
                 $res->isSuccess = FALSE;
                 $res->code = 100;
                 $res->message = "유효하지 않은 아이디 입니다";
@@ -76,7 +76,7 @@ try {
 
             http_response_code(200);
             // 유저 타입 검증
-            if(!isValidUserType($req->userType)){
+            if (!isValidUserType($req->userType)) {
                 $res->isSuccess = FALSE;
                 $res->code = 201;
                 $res->message = "유저 타입이 올바르지 않습니다.";
@@ -84,72 +84,82 @@ try {
                 break;
             }
 
-            // 이메일 중복 검사, 중복 시에 아이디, 비번 찾기로 이동함
-            if(isRedundantEmail($req->email)){
-                $res->isSuccess = FALSE;
-                $res->code = 202;
-                $res->message = "이미 가입된 이메일입니다. 아이디, 비밀번호 찾기로 이동하시겠어요?";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+            switch ($req->userType) {
+                case "NORMAL":
+                    // 이메일 중복 검사, 중복 시에 아이디, 비번 찾기로 이동함
+                    if (isRedundantEmail($req->email)) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 202;
+                        $res->message = "이미 가입된 이메일입니다. 아이디, 비밀번호 찾기로 이동하시겠어요?";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 이메일 형식 검사
-            if (!isValidEmailForm($req->email)){
-                $res->isSuccess = FALSE;
-                $res->code = 203;
-                $res->message = "이메일 형식이 올바르지 않습니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 이메일 형식 검사
+                    if (!isValidEmailForm($req->email)) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 203;
+                        $res->message = "이메일 형식이 올바르지 않습니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 비밀번호 검사 8~16의 문자열
-            if(!isValidPasswordForm($req->password)){
-                $res->isSuccess = FALSE;
-                $res->code = 204;
-                $res->message = "비밀번호 형식이 올바르지 않습니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 비밀번호 검사 8~16의 문자열
+                    if (!is_string($req->password) or !isValidPasswordForm($req->password)) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 204;
+                        $res->message = "비밀번호 형식이 올바르지 않습니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 폰 번호 검사
-            if(!isValidPhoneForm($req->phone)){
-                $res->isSuccess = FALSE;
-                $res->code = 205;
-                $res->message = "휴대폰 번호 형식이 올바르지 않습니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 이름 null 검사
+                    if (is_null($req->name)){
+                        $res->isSuccess = FALSE;
+                        $res->code = 205;
+                        $res->message = "이름이 입력되지 않습니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 생년월일 검사
-            if (!isValidBirthForm($req->dateofBirth)){
-                $res->isSuccess = FALSE;
-                $res->code = 206;
-                $res->message = "휴대폰 번호 형식이 올바르지 않습니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 폰 번호 검사
+                    if (!is_string($req->phone) or !isValidPhoneForm($req->phone)) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 206;
+                        $res->message = "휴대폰 번호 형식이 올바르지 않습니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 동의항목 검사
-            if (!isYorN([$req->AgreeOnService, $req->AgreeOnPrivate])){
-                $res->isSuccess = FALSE;
-                $res->code = 207;
-                $res->message = "동의 항목은 Y 또는 N으로 해주세요.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 생년월일 검사
+                    if (!isValidBirthForm($req->dateOfBirth)) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 207;
+                        $res->message = "생년월일 형식이 올바르지 않습니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 동의 여부 검사
-            if ($req->AgreeOnService=='N' or $req->AgreeOnPrivate=='N'){
-                $res->isSuccess = FALSE;
-                $res->code = 208;
-                $res->message = "필수 동의 항목에 체크해주세요.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }
+                    // 동의항목 검사
+                    if (!isYorN([$req->AgreeOnService, $req->AgreeOnPrivate])) {
+                        $res->isSuccess = FALSE;
+                        $res->code = 208;
+                        $res->message = "동의 항목은 Y 또는 N으로 해주세요.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
+                    // 동의 여부 검사
+                    if ($req->AgreeOnService == 'N' or $req->AgreeOnPrivate == 'N') {
+                        $res->isSuccess = FALSE;
+                        $res->code = 209;
+                        $res->message = "필수 동의 항목에 체크해주세요.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        break;
+                    }
 
-            // 회원가입 DB 삽입
-            createUser($req->userType,
+                    // 회원가입 DB 삽입
+                    createUser($req->userType,
                         $req->email,
                         $req->password,
                         $req->name,
@@ -158,12 +168,31 @@ try {
                         $req->AgreeOnService,
                         $req->AgreeOnPrivate);
 
-            $res->result='dummy JWT key';
-            $res->isSuccess = TRUE;
-            $res->code = 100;
-            $res->message = "테스트 성공";
-            echo json_encode($res, JSON_NUMERIC_CHECK);
-            break;
+                    // jwt 발급
+                    $userIdx = getUserIdxByEmail($req->email);
+
+                    $jwt = getJWToken($userIdx, $req->email, $req->password, JWT_SECRET_KEY);
+
+                    $res->result = $jwt;
+                    $res->isSuccess = TRUE;
+                    $res->code = 100;
+                    $res->message = "회원가입 성공";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+
+                case "KAKAO":
+                    echo "카카오 소셜회원가입";
+                    break;
+
+                case "FACEBOOK":
+                    echo "페이스북 소셜로그인 X";
+                    break;
+
+                case "NAVER":
+                    echo "네이버 소셜로그인 X";
+                    break;
+
+            }
 
 
     }
