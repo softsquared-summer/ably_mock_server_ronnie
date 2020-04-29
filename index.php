@@ -25,7 +25,10 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
 
 //    에이블리
-    $r->addRoute('POST', '/register', ['MainController', 'createUser']);
+    $r->addRoute('POST', '/user', ['MainController', 'createUser']);
+    $r->addRoute('POST', '/login', ['MainController', 'createLogin']);
+    $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
+    $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
 
 
 

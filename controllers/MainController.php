@@ -1,6 +1,6 @@
 <?php
 require 'function.php';
-require 'registerFunction.php';
+require 'LoginFunction.php';
 
 
 const JWT_SECRET_KEY = "Ronnie's Secret key";
@@ -36,7 +36,7 @@ try {
             $res->message = "테스트 성공";
 
             echo json_encode($res, JSON_NUMERIC_CHECK);
-            break;
+            return;
         /*
          * API No. 1
          * API Name : JWT 생성 테스트 API (로그인)
@@ -61,7 +61,7 @@ try {
             $res->code = 100;
             $res->message = "테스트 성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
-            break;
+            return;
 
 //            ====================================================
 
@@ -81,10 +81,12 @@ try {
                 $res->code = 201;
                 $res->message = "유저 타입이 올바르지 않습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
+                return;
             }
 
+            // 유저 타입에 따른 처리
             switch ($req->userType) {
+                // 일반 이메일 회원가입
                 case "NORMAL":
                     // 이메일 중복 검사, 중복 시에 아이디, 비번 찾기로 이동함
                     if (isRedundantEmail($req->email)) {
@@ -92,7 +94,7 @@ try {
                         $res->code = 202;
                         $res->message = "이미 가입된 이메일입니다. 아이디, 비밀번호 찾기로 이동하시겠어요?";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 이메일 형식 검사
@@ -101,7 +103,7 @@ try {
                         $res->code = 203;
                         $res->message = "이메일 형식이 올바르지 않습니다.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 비밀번호 검사 8~16의 문자열
@@ -110,7 +112,7 @@ try {
                         $res->code = 204;
                         $res->message = "비밀번호 형식이 올바르지 않습니다.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 이름 null 검사
@@ -119,7 +121,7 @@ try {
                         $res->code = 205;
                         $res->message = "이름이 입력되지 않습니다.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 폰 번호 검사
@@ -128,7 +130,7 @@ try {
                         $res->code = 206;
                         $res->message = "휴대폰 번호 형식이 올바르지 않습니다.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 생년월일 검사
@@ -137,7 +139,7 @@ try {
                         $res->code = 207;
                         $res->message = "생년월일 형식이 올바르지 않습니다.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 동의항목 검사
@@ -146,7 +148,7 @@ try {
                         $res->code = 208;
                         $res->message = "동의 항목은 Y 또는 N으로 해주세요.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 동의 여부 검사
@@ -155,7 +157,7 @@ try {
                         $res->code = 209;
                         $res->message = "필수 동의 항목에 체크해주세요.";
                         echo json_encode($res, JSON_NUMERIC_CHECK);
-                        break;
+                        return;
                     }
 
                     // 회원가입 DB 삽입
@@ -173,26 +175,109 @@ try {
 
                     $jwt = getJWToken($userIdx, $req->email, $req->password, JWT_SECRET_KEY);
 
-                    $res->result = $jwt;
+                    $res->result=$jwt;
                     $res->isSuccess = TRUE;
                     $res->code = 100;
                     $res->message = "회원가입 성공";
                     echo json_encode($res, JSON_NUMERIC_CHECK);
-                    break;
+                    return;
 
+                    // 카카오 소셜 회원가입, 이메일 제공 동의 했다고 가정하고 하는거임.
                 case "KAKAO":
-                    echo "카카오 소셜회원가입";
-                    break;
+//                    $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+                    echo "카카오 소셜회원가입 구현중";
+                    return;
 
                 case "FACEBOOK":
                     echo "페이스북 소셜로그인 X";
-                    break;
+                    return;
 
                 case "NAVER":
                     echo "네이버 소셜로그인 X";
-                    break;
+                    return;
 
             }
+
+
+        /*
+     * API No. 2
+     * API Name : 로그인 API (로그인)
+     * 마지막 수정 날짜 : 20.04.29
+     */
+        case "createLogin":
+            http_response_code(200);
+
+            // 유저 타입 검증
+            if (!isValidUserType($req->userType)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유저 타입이 올바르지 않습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            switch ($req->userType){
+                case "NORMAL":
+
+                    if (!isValidUser($req->email, $req->password)){
+                        $res->code = 202;
+                        $res->message = "가입되어 있지 않은 이메일입니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        return;
+                    }
+
+                    $userIdx = getUserIdxByEmail($req->email);
+                    $jwt = getJWToken($userIdx, $req->email, JWT_SECRET_KEY);
+                    $res->result= $jwt;
+                    $res->isSuccess = TRUE;
+                    $res->code = 100;
+                    $res->message = "로그인 성공";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    return;
+
+                case "KAKAO":
+                    echo "카카오 로그인 구현중1111";
+                    return;
+
+                case "NAVER":
+                    echo "우리 네이버 안하기로 했잖아,,";
+                    return;
+
+                case "FACEBOOK":
+                    echo "우리 페이스북 안하기로 했잖아..";
+                    return;
+
+            }
+
+        /*
+     * API No. 3
+     * API Name : 배너 API
+     * 마지막 수정 날짜 : 20.04.29
+     */
+        case "getBanner":
+            http_response_code(200);
+            $res->result = getBanner();
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "조회 성공";
+           echo json_encode($res, JSON_NUMERIC_CHECK);
+            break;
+        /*
+     * API No. 4
+     * API Name : 추천 상품 조회 API
+     * 마지막 수정 날짜 : 20.04.29
+     */
+        case "getRecommendedProducts":
+            http_response_code(200);
+            $res->result = getRecommendedProducts();
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "조회 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            break;
+
+
 
 
     }
