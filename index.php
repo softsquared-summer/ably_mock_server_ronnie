@@ -29,7 +29,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('POST', '/login', ['MainController', 'createLogin']);
     $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
     $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
-    echo "더미";
+    
 
 
 
