@@ -70,6 +70,24 @@ function isValidUser($id, $pw)
 
 }
 
+function isValidUserIdxEmail($userIdx, $email)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM User WHERE userIdx= ? AND email = ?) AS exist;";
+
+
+    $st = $pdo->prepare($query);
+    //    $st->execute([$param,$param]);
+    $st->execute([$userIdx, $email]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
 
 // CREATE
 function createUser($userType,
@@ -124,7 +142,7 @@ function isRedundantEmail($email)
 function getUserIdxByEmail($email)
 {
     $pdo = pdoSqlConnect();
-    $query = "select userIdx from User where email=?;";
+    $query = "select userIdx from User where email = ?;";
 
     $st = $pdo->prepare($query);
     $st->execute([$email]);
@@ -134,7 +152,23 @@ function getUserIdxByEmail($email)
     $st = null;
     $pdo = null;
 
-    return intval($res[0]);
+    return $res[0]['userIdx'];
+}
+
+//    READ
+function getUserNameByUserIdx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select name from User where userIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0]['name'];
 }
 
 //    READ
@@ -155,15 +189,23 @@ function getBanner()
 }
 
 //    READ
-function getRecommendedProducts()
+function getRecommendedProd()
 {
     $pdo = pdoSqlConnect();
-    $query = "select productIdx,
+    // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
+    $query = "select P.productIdx,
+       imgUrl                                                                    thumbnailUrl,
        concat(discountRatio, '%')                                             as discountRatio,
-       format(if(discountRatio != 0, price * 0.01 * discountRatio, price), 0) as displayedPrice,
+       format(if(discountRatio != 0, round(price * 0.01 * (100-discountRatio), -1), price), 0) as displayedPrice,
+       M.marketIdx,
+       marketName,
        productName,
-       (if(timestampdiff(day, createdAt, now()) <= 3, 'Y', 'N'))              as isNew
-from Product;";
+       if(EXISTS(select * from ProductHeart), 'N', 'N')     isMyHeart,
+       isHotDeal,
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))            as isNew
+from Product P
+         left join (select productIdx, imgUrl from ProductImg where isThumnail='Y') PI on P.productIdx = PI.productIdx
+         left join Market M on P.marketIdx = M.marketIdx order by P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
     $st->execute([]);
@@ -174,6 +216,79 @@ from Product;";
     $pdo = null;
 
     return $res;
+}
+
+//    READ
+function getRecommendedProdByCate($categoryIdx)
+{
+    $pdo = pdoSqlConnect();
+    // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
+    $query = "select P.productIdx,
+       imgUrl                                                                                       thumbnailUrl,
+       concat(discountRatio, '%')                                                                as discountRatio,
+       format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
+       M.marketIdx,
+       marketName,
+       productName,
+       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
+       isHotDeal,
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
+from Product P
+         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
+         left join Market M on P.marketIdx = M.marketIdx
+where categoryIdx = ?
+order by P.createdAt DESC;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$categoryIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+//    READ
+function getLastestViewedCategory($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select categoryIdx
+from Product P
+         inner join VisitHistory VH on P.productIdx = VH.productIdx
+where VH.visitorIdx = ?
+order by VH.visitTime DESC
+limit 1;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    if (empty($res)){
+        return false;
+    }
+
+    return intval($res[0]['categoryIdx']);
+}
+
+
+// CREATE
+function createVisitHistory($visitorIdx, $productIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into VisitHistory (visitorIdx, productIdx) values (?, ?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$visitorIdx, $productIdx]);
+
+    $st = null;
+    $pdo = null;
+
 }
 
 // UPDATE

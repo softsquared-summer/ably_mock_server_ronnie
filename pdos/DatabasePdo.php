@@ -1,5 +1,4 @@
 <?php
-
 //DB 정보
 function pdoSqlConnect()
 {
@@ -15,3 +14,4 @@ function pdoSqlConnect()
         echo $e->getMessage();
     }
 }
+?>

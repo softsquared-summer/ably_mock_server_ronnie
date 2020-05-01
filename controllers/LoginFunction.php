@@ -47,4 +47,44 @@ function isYorN($item)
     return true;
 }
 
+function getEmailByAccessToken($accessToken)
+{
+    $url = 'https://kapi.kakao.com/v2/user/me';
+    $headerParams = [];
+    $headerParams[] = 'Authorization: Bearer ' . $accessToken;
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerParams);
+    $res = curl_exec($ch);
+    $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $header = substr($res, 0, $header_size);
+    $body = substr($res, $header_size);
+    curl_close($ch);
+    return json_decode($body)->kakao_account->email;
+}
+
+function getNameByAccessToken($accessToken)
+{
+    $url = 'https://kapi.kakao.com/v2/user/me';
+    $headerParams = [];
+    $headerParams[] = 'Authorization: Bearer ' . $accessToken;
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerParams);
+    $res = curl_exec($ch);
+    $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $header = substr($res, 0, $header_size);
+    $body = substr($res, $header_size);
+    curl_close($ch);
+    return json_decode($body)->properties->nickname;
+}
+
 ?>

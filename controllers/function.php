@@ -22,7 +22,7 @@ function isValidHeader($jwt, $key)
     try {
         $data = getDataByJWToken($jwt, $key);
         //로그인 함수 직접 구현 요함
-        return isValidUser($data->id, $data->pw);
+        return isValidUserIdxEmail($data->userIdx, $data->email);
     } catch (\Exception $e) {
         return false;
     }
