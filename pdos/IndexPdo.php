@@ -194,18 +194,25 @@ function getRecommendedProd()
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
     $query = "select P.productIdx,
-       imgUrl                                                                    thumbnailUrl,
-       concat(discountRatio, '%')                                             as discountRatio,
-       format(if(discountRatio != 0, round(price * 0.01 * (100-discountRatio), -1), price), 0) as displayedPrice,
+       imgUrl                                                                                       thumbnailUrl,
+       concat(discountRatio, '%')                                                                as discountRatio,
+       format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
        M.marketIdx,
        marketName,
        productName,
-       if(EXISTS(select * from ProductHeart), 'N', 'N')     isMyHeart,
+       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
        isHotDeal,
-       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))            as isNew
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail='Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx order by P.createdAt DESC;";
+         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
+         left join Market M on P.marketIdx = M.marketIdx
+         left join (select productIdx, sum(number) as purchaseCnt
+                    from Orders
+                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
+                    where 100 <= orderStatus < 210
+                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
     $st->execute([]);
@@ -230,14 +237,20 @@ function getRecommendedProdByCate($categoryIdx)
        M.marketIdx,
        marketName,
        productName,
+       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
        if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
          left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
          left join Market M on P.marketIdx = M.marketIdx
-where categoryIdx = ?
-order by P.createdAt DESC;";
+         left join (select productIdx, sum(number) as purchaseCnt
+                    from Orders
+                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
+                    where 100 <= orderStatus < 210
+                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+where categoryIdx=?
+order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
     $st->execute([$categoryIdx]);
