@@ -30,6 +30,8 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('POST', '/signIn', ['MainController', 'createLogin']);
     $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
     $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
+    $r->addRoute('GET', '/new-products', ['MainController', 'getNewProducts']);
+    $r->addRoute('GET', '/new-products/best', ['MainController', 'getNewBestProducts']);
 
 
 
