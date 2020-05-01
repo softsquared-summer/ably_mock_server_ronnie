@@ -124,6 +124,15 @@ try {
                         return;
                     }
 
+                    // 폰번호 중복 검사
+                    if (isRedundantPhone($req->phone)){
+                        $res->isSuccess = FALSE;
+                        $res->code = 202;
+                        $res->message = "이미 가입된 휴대폰입니다. 아이디, 비밀번호 찾기로 이동하시겠어요?";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        return;
+                    }
+
                     // 폰 번호 검사
                     if (!is_string($req->phone) or !isValidPhoneForm($req->phone)) {
                         $res->isSuccess = FALSE;
@@ -435,6 +444,20 @@ try {
         case "getNewBestProducts":
             http_response_code(200);
             $res->result = getNewBestProducts();
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "조회 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            break;
+
+        /*
+* API No. 7
+* API Name : 유저목록 조회 API
+* 마지막 수정 날짜 : 20.05.01
+*/
+        case "getUsers":
+            http_response_code(200);
+            $res->result = getUsers();
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";

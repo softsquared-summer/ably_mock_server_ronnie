@@ -366,6 +366,41 @@ limit 10;";
     return $res;
 }
 
+//    READ
+function getUsers()
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select userIdx, userType, email, password, name, phone, dateOfBirth from User where isDeleted='N';";
+
+    $st = $pdo->prepare($query);
+    $st->execute([]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
+//    READ
+function isRedundantPhone($phone)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select EXISTS(select * from User where phone = ?) as exist";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$phone]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return intval($res[0]['exist']);
+}
 
 // CREATE
 function createVisitHistory($visitorIdx, $productIdx)
