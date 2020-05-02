@@ -555,8 +555,8 @@ try {
                 return;
             }
 
-            if (isset($_GET['fistOption'])){
-                $res->result = getSecondOptions($productIdx, $_GET['fistOption']);
+            if (isset($_GET['firstOption'])){
+                $res->result = getSecondOptions($productIdx, $_GET['firstOption']);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "성공";

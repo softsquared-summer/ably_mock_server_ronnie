@@ -532,7 +532,7 @@ where productIdx = ?;";
 }
 
 //    READ
-function getSecondOptions($productIdx, $fistOption)
+function getSecondOptions($productIdx, $firstOption)
 {
     $pdo = pdoSqlConnect();
 
@@ -541,7 +541,7 @@ from ProductStock
 where productIdx = ? and fistOption = ?;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$productIdx, $fistOption]);
+    $st->execute([$productIdx, $firstOption]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
