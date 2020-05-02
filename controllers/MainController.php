@@ -464,6 +464,42 @@ try {
             echo json_encode($res, JSON_NUMERIC_CHECK);
             break;
 
+        /*
+* API No. 8
+* API Name : 토큰 검증 API
+* 마지막 수정 날짜 : 20.05.02
+*/
+        case "validJwt":
+            // jwt 유효성 검사
+
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])){
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            http_response_code(200);
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
     }
 
 } catch (\Exception $e) {

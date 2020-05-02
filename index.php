@@ -17,17 +17,18 @@ error_reporting(E_ALL); ini_set("display_errors", 1);
 //Main Server API
 $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) {
     /* ******************   Test   ****************** */
-    $r->addRoute('GET', '/', ['IndexController', 'index']);
-    $r->addRoute('GET', '/test', ['IndexController', 'test']);
-    $r->addRoute('GET', '/test/{testNo}', ['IndexController', 'testDetail']);
-    $r->addRoute('POST', '/test', ['IndexController', 'testPost']);
-    $r->addRoute('GET', '/jwt', ['MainController', 'validateJwt']);
-    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
+//    $r->addRoute('GET', '/', ['IndexController', 'index']);
+//    $r->addRoute('GET', '/test', ['IndexController', 'test']);
+//    $r->addRoute('GET', '/test/{testNo}', ['IndexController', 'testDetail']);
+//    $r->addRoute('POST', '/test', ['IndexController', 'testPost']);
+//    $r->addRoute('GET', '/jwt', ['MainController', 'validateJwt']);
+//    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
 
 //    에이블리
 
     $r->addRoute('POST', '/signUp', ['MainController', 'createUser']);
     $r->addRoute('POST', '/signIn', ['MainController', 'createLogin']);
+    $r->addRoute('GET', '/signIn', ['MainController', 'validJwt']);
     $r->addRoute('GET', '/users', ['MainController', 'getUsers']);
     $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
     $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
