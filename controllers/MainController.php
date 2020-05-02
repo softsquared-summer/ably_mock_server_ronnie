@@ -536,6 +536,40 @@ try {
             $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
+
+        /*
+* API No. 10
+* API Name : 상품 옵션 조회 API
+* 마지막 수정 날짜 : 20.05.03
+*/
+        case "getOptions":
+            http_response_code(200);
+
+            // path variable 유효성 검사
+            $productIdx = $vars['productIdx'];
+            if (!isValidProductIdx($productIdx)){
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "유효한 요청이 아닙니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            if (isset($_GET['fistOption'])){
+                $res->result = getSecondOptions($productIdx, $_GET['fistOption']);
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "성공";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            $res->result = getOptions($productIdx);
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
     }
 
 } catch (\Exception $e) {

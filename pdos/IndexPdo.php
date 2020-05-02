@@ -512,6 +512,44 @@ group by productIdx;";
     return $res;
 }
 
+//    READ
+function getOptions($productIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select detailedProductIdx, fistOption, secondOption, concat(format(detailedPrice, -1), '원') detailedPrice, if(stock <= 0, '품절', stock) stock
+from ProductStock
+where productIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
+
+//    READ
+function getSecondOptions($productIdx, $fistOption)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select detailedProductIdx, fistOption, secondOption, concat(format(detailedPrice, -1), '원') detailedPrice, if(stock <= 0, '품절', stock) stock
+from ProductStock
+where productIdx = ? and fistOption = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$productIdx, $fistOption]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
+
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){
 //        $pdo = pdoSqlConnect();
