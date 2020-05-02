@@ -34,6 +34,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
     $r->addRoute('GET', '/new-products', ['MainController', 'getNewProducts']);
     $r->addRoute('GET', '/new-products/best', ['MainController', 'getNewBestProducts']);
+    $r->addRoute('GET', '/products/{productIdx}', ['MainController', 'getProductDetail']);
 
 
 

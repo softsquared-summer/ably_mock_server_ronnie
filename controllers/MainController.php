@@ -472,6 +472,7 @@ try {
         case "validJwt":
             // jwt 유효성 검사
 
+
             if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])){
                 $res->isSuccess = FALSE;
                 $res->code = 202;
@@ -491,7 +492,6 @@ try {
                 addErrorLogs($errorLogs, $res, $req);
                 return;
             }
-
             http_response_code(200);
             $res->isSuccess = TRUE;
             $res->code = 100;
@@ -500,6 +500,42 @@ try {
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
 
+
+        /*
+* API No. 9
+* API Name : 상품 상세조회 API
+* 마지막 수정 날짜 : 20.05.02
+*/
+        case "getProductDetail":
+            http_response_code(200);
+
+            // path variable 유효성 검사
+            $productIdx = $vars['productIdx'];
+            if (!isValidProductIdx($productIdx)){
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "유효한 요청이 아닙니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 회원이라면 히스토리에 추가하기
+            if (isset($_SERVER['HTTP_X_ACCESS_TOKEN']) and isValidHeader($_SERVER['HTTP_X_ACCESS_TOKEN'], JWT_SECRET_KEY)){
+                $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
+                $visitorIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+                createVisitHistory($visitorIdx, $productIdx);
+            }
+
+            $result = getProductDetail($productIdx);
+            $result['mainImgUrlList'] = $mainImgUrlList = getMainImgListByProductIdx($productIdx);
+            $result['normalImgUrlList'] = $normalImgUrlList = getNormalImgListByProductIdx($productIdx);
+
+            $res->result = $result;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
     }
 
 } catch (\Exception $e) {

@@ -86,7 +86,24 @@ function isValidUserIdxEmail($userIdx, $email)
     $pdo = null;
 
     return intval($res[0]["exist"]);
+}
 
+function isValidProductIdx($productIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM Product WHERE productIdx = ?) AS exist;";
+
+
+    $st = $pdo->prepare($query);
+    //    $st->execute([$param,$param]);
+    $st->execute([$productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return intval($res[0]["exist"]);
 }
 
 // CREATE
@@ -282,7 +299,7 @@ limit 1;";
     $st = null;
     $pdo = null;
 
-    if (empty($res)){
+    if (empty($res)) {
         return false;
     }
 
@@ -413,6 +430,86 @@ function createVisitHistory($visitorIdx, $productIdx)
 
     $st = null;
     $pdo = null;
+}
+
+//    READ
+function getProductDetail($productIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select P.productIdx,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'),
+          productName)                                  productName,
+       concat(discountRatio, '%') as                    discountRatio,
+       concat(format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0),
+              '원')                as                    displayedPrice,
+       concat(format(price, -1), '원')                   price,
+       concat('4734-', P.productIdx)                    productCode,
+       contents,
+       if(EXISTS(select * from ProductHeart), 'N', 'N') isMyHeart,
+       M.*
+from Product P
+         left join (select M.marketIdx,
+                           marketName,
+                           group_concat(concat('#', tagName) separator ' ') marketHashTags,
+                           profileImgUrl as                                 marketThubnailUrl
+                    from Market M
+                             left join HashTag HT on M.marketIdx = HT.marketIdx
+                    group by M.marketIdx) M on P.marketIdx = M.marketIdx
+where P.productIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0];
+}
+
+//    READ
+function getMainImgListByProductIdx($productIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select productIdx, group_concat(imgUrl separator ' ') mainImgUrl
+from ProductImg
+where ProductImg.isMain = 'Y'
+  and productIdx = ?
+group by productIdx;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    $res = explode(' ', $res[0]['mainImgUrl']);
+    return $res;
+}
+
+//    READ
+function getNormalImgListByProductIdx($productIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select productIdx, group_concat(imgUrl separator ' ') normalImgUrl
+from ProductImg
+where ProductImg.isMain = 'N'
+#   and productIdx = ?
+group by productIdx;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    $res = explode(' ', $res[0]['normalImgUrl']);
+    return $res;
 }
 
 // UPDATE
