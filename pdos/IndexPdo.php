@@ -452,7 +452,7 @@ from Product P
          left join (select M.marketIdx,
                            marketName,
                            group_concat(concat('#', tagName) separator ' ') marketHashTags,
-                           profileImgUrl as                                 marketThubnailUrl
+                           profileImgUrl as                                 marketThumbnailUrl
                     from Market M
                              left join HashTag HT on M.marketIdx = HT.marketIdx
                     group by M.marketIdx) M on P.marketIdx = M.marketIdx
