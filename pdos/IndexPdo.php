@@ -517,7 +517,7 @@ function getOptions($productIdx)
 {
     $pdo = pdoSqlConnect();
 
-    $query = "select detailedProductIdx, fistOption, secondOption, concat(format(detailedPrice, -1), '원') detailedPrice, if(stock <= 0, '품절', stock) stock
+    $query = "select detailedProductIdx, firstOption, secondOption, detailedPrice, if(stock <= 0, '품절', stock) stock
 from ProductStock
 where productIdx = ?;";
 
@@ -536,9 +536,9 @@ function getSecondOptions($productIdx, $firstOption)
 {
     $pdo = pdoSqlConnect();
 
-    $query = "select detailedProductIdx, fistOption, secondOption, concat(format(detailedPrice, -1), '원') detailedPrice, if(stock <= 0, '품절', stock) stock
+    $query = "select detailedProductIdx, firstOption, secondOption, detailedPrice, if(stock <= 0, '품절', stock) stock
 from ProductStock
-where productIdx = ? and fistOption = ?;";
+where productIdx = ? and firstOption = ?;";
 
     $st = $pdo->prepare($query);
     $st->execute([$productIdx, $firstOption]);
@@ -548,6 +548,49 @@ where productIdx = ? and fistOption = ?;";
     $st = null;
     $pdo = null;
     return $res;
+}
+
+//    READ 유저의 최신 orderIdx 뽑아내기
+function getNextOrderIdx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select ifnull(max(orderIdx), 0)+1 nextOrderIdx from Orders where orderDate=date(now()) and userIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['nextOrderIdx']);
+}
+
+// CREATE
+function createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount) values (?, ?, ?,?, ?, ?, ?, ?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount]);
+
+    $st = null;
+    $pdo = null;
+}
+
+// CREATE
+function createDeliveryInfo($orderIdx, $userIdx, $detailedProductIdx, $receiverName, $postalCode, $address, $detailedAddress, $phone, $message)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into Delivery (orderIdx, userIdx, detailedProductIdx, receiverName, postalCode, address, detailedAddress, phone, message) values  (?,?,?,?,?,?,?,?,?)";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $receiverName, $postalCode, $address, $detailedAddress, $phone, $message]);
+
+    $st = null;
+    $pdo = null;
 }
 
 // UPDATE

@@ -570,6 +570,28 @@ try {
             $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
+
+
+        /*
+* API No. 101
+* API Name : 상품 주문 API
+* 마지막 수정 날짜 : 20.05.04
+*/
+        case "createOrder":
+            http_response_code(200);
+
+            // 토큰검증 및 userIdx 뽑아내기
+            // res
+            echo $req->fortest;
+            echo $req->mother[0]->son1;
+
+
+//            $res->result = getOptions();
+//            $res->isSuccess = TRUE;
+//            $res->code = 100;
+//            $res->message = "성공";
+//            echo json_encode($res, JSON_NUMERIC_CHECK);
+//            return;
     }
 
 } catch (\Exception $e) {
