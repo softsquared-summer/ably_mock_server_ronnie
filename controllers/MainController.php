@@ -574,7 +574,7 @@ try {
 
 
         /*
-* API No. 101
+* API No. 11
 * API Name : 상품 주문 API
 * 마지막 수정 날짜 : 20.05.04
 */
@@ -766,6 +766,113 @@ try {
             $res->isSuccess = true;
             $res->code = 100;
             $res->message = "주문 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+        /*
+* API No. 12
+* API Name : 상품 찜 API
+* 마지막 수정 날짜 : 20.05.04
+*/
+        case "createProductHeart":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            // path variable 유효성 검사
+            $productIdx = $vars['productIdx'];
+            if (!isValidProductIdx($productIdx)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "유효한 요청이 아닙니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            $hearterId = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $drawerIdx = $req->drawerIdx;
+
+            // 서랍 검증
+            if (!isValidDrawerIdx($hearterId, $drawerIdx)){
+                $res->isSuccess = false;
+                $res->code = 202;
+                $res->message = "유효한 서랍 인덱스가 아납니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+
+            createProductHearts($hearterId, $productIdx, $drawerIdx);
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+        /*
+* API No. 13
+* API Name : 상품 찜 삭제 API
+* 마지막 수정 날짜 : 20.05.04
+*/
+        case "deleteProductHeart":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            // path variable 유효성 검사
+            $productIdx = $vars['productIdx'];
+            if (!isValidProductIdx($productIdx)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "유효한 요청이 아닙니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            $hearterId = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            delteProductHearts($hearterId, $productIdx);
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
 

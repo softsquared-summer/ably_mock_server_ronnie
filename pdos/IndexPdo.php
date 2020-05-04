@@ -445,6 +445,7 @@ function getProductDetail($productIdx)
               '원')                as                    displayedPrice,
        concat(format(price, -1), '원')                   price,
        concat('4734-', P.productIdx)                    productCode,
+       ifnull(purchaseCnt, 0)                           purchaseCnt,
        contents,
        if(EXISTS(select * from ProductHeart), 'N', 'N') isMyHeart,
        M.*
@@ -456,6 +457,10 @@ from Product P
                     from Market M
                              left join HashTag HT on M.marketIdx = HT.marketIdx
                     group by M.marketIdx) M on P.marketIdx = M.marketIdx
+         left join (select productIdx, count(*) purchaseCnt
+                    from Orders
+                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
+                    group by productIdx) purchaseCntInfo on P.productIdx = purchaseCntInfo.productIdx
 where P.productIdx = ?;";
 
     $st = $pdo->prepare($query);
@@ -498,7 +503,7 @@ function getNormalImgListByProductIdx($productIdx)
     $query = "select productIdx, group_concat(imgUrl separator ' ') normalImgUrl
 from ProductImg
 where ProductImg.isMain = 'N'
-#   and productIdx = ?
+   and productIdx = ?
 group by productIdx;";
 
     $st = $pdo->prepare($query);
@@ -658,6 +663,40 @@ from ProductStock where detailedProductIdx=?;";
     $pdo = null;
     return intval($res[0]['isOk']);
 }
+
+// CREATE
+function createProductHearts($hearterIdx, $productIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into ProductHeart (hearterIdx, productIdx, drawerIdx) values (?, ?, ?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$hearterIdx, $productIdx, $drawerIdx]);
+
+    $st = null;
+    $pdo = null;
+}
+
+//    READ 유효한 서랍 인덱스 확인
+function isValidDrawerIdx($userIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select EXISTS(select *
+              from ProductHeartDrawer
+              where userIdx = ? and detailedProductIdx = ?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+
 
 
 // UPDATE

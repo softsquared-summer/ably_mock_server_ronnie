@@ -38,6 +38,9 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/products/{productIdx}/options', ['MainController', 'getOptions']);
     $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
 
+    $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHeart']);
+    $r->addRoute('DELETE', '/product-hearts/{productIdx}', ['MainController', 'deleteProductHeart']);
+
 
 
 
