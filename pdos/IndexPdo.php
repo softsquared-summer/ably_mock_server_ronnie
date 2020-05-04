@@ -555,7 +555,7 @@ function getNextOrderIdx($userIdx)
 {
     $pdo = pdoSqlConnect();
 
-    $query = "select ifnull(max(orderIdx), 0)+1 nextOrderIdx from Orders where orderDate=date(now()) and userIdx=?;";
+    $query = "select ifnull(max(orderIdx), 0)+1 nextOrderIdx from Orders where date_format(orderDate, '%Y-%m-%d')=date_format(now(), '%Y-%m-%d') and userIdx=?;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
@@ -568,13 +568,13 @@ function getNextOrderIdx($userIdx)
 }
 
 // CREATE
-function createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount)
+function createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus)
 {
     $pdo = pdoSqlConnect();
-    $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount) values (?, ?, ?,?, ?, ?, ?, ?);";
+    $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount, orderStatus) values (?, ?, ?,?, ?, ?, ?, ?, ?);";
 
     $st = $pdo->prepare($query);
-    $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount]);
+    $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount,$orderStatus]);
 
     $st = null;
     $pdo = null;
@@ -592,6 +592,57 @@ function createDeliveryInfo($orderIdx, $userIdx, $detailedProductIdx, $receiverN
     $st = null;
     $pdo = null;
 }
+
+// CREATE
+function takeOutStock($number, $detailedProductIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "update ProductStock set stock = stock - ? where detailedProductIdx = ?";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$number, $detailedProductIdx]);
+
+    $st = null;
+    $pdo = null;
+}
+
+//    READ 유효한 상세 상품 인덱스 확인
+function isValidDetailedProductIdx($detailedProductIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select EXISTS(select *
+              from ProductStock
+              where detailedProductIdx = ?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$detailedProductIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+//    READ 상품 재고 확인
+function isValidNumber($number, $detailedProductIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select if(stock>=?, 1, 0) as isOk
+from ProductStock where detailedProductIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$number, $detailedProductIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['isOk']);
+}
+
 
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){

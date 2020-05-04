@@ -1,6 +1,7 @@
 <?php
 require 'function.php';
 require 'LoginFunction.php';
+require 'OrderFunction.php';
 
 
 const JWT_SECRET_KEY = "Ronnie's Secret key";
@@ -125,7 +126,7 @@ try {
                     }
 
                     // 폰번호 중복 검사
-                    if (isRedundantPhone($req->phone)){
+                    if (isRedundantPhone($req->phone)) {
                         $res->isSuccess = FALSE;
                         $res->code = 202;
                         $res->message = "이미 가입된 휴대폰입니다. 아이디, 비밀번호 찾기로 이동하시겠어요?";
@@ -404,7 +405,7 @@ try {
             $category = getLastestViewedCategory($userIdx);
 
             // 최근 본 상품이 없다면, 그냥 비회원과 마찬가지로 조회한다.
-            if ($category==false){
+            if ($category == false) {
                 $res->result = getRecommendedProd();
                 $res->isSuccess = TRUE;
                 $res->code = 100;
@@ -473,7 +474,7 @@ try {
             // jwt 유효성 검사
 
 
-            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])){
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "토큰을 입력하세요.";
@@ -511,7 +512,7 @@ try {
 
             // path variable 유효성 검사
             $productIdx = $vars['productIdx'];
-            if (!isValidProductIdx($productIdx)){
+            if (!isValidProductIdx($productIdx)) {
                 $res->isSuccess = false;
                 $res->code = 200;
                 $res->message = "유효한 요청이 아닙니다.";
@@ -520,7 +521,7 @@ try {
             }
 
             // 회원이라면 히스토리에 추가하기
-            if (isset($_SERVER['HTTP_X_ACCESS_TOKEN']) and isValidHeader($_SERVER['HTTP_X_ACCESS_TOKEN'], JWT_SECRET_KEY)){
+            if (isset($_SERVER['HTTP_X_ACCESS_TOKEN']) and isValidHeader($_SERVER['HTTP_X_ACCESS_TOKEN'], JWT_SECRET_KEY)) {
                 $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
                 $visitorIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
                 createVisitHistory($visitorIdx, $productIdx);
@@ -547,7 +548,7 @@ try {
 
             // path variable 유효성 검사
             $productIdx = $vars['productIdx'];
-            if (!isValidProductIdx($productIdx)){
+            if (!isValidProductIdx($productIdx)) {
                 $res->isSuccess = false;
                 $res->code = 200;
                 $res->message = "유효한 요청이 아닙니다.";
@@ -555,7 +556,7 @@ try {
                 return;
             }
 
-            if (isset($_GET['firstOption'])){
+            if (isset($_GET['firstOption'])) {
                 $res->result = getSecondOptions($productIdx, $_GET['firstOption']);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
@@ -580,18 +581,163 @@ try {
         case "createOrder":
             http_response_code(200);
 
-            // 토큰검증 및 userIdx 뽑아내기
-            // res
-            echo $req->fortest;
-            echo $req->mother[0]->son1;
+            // 토큰 검증하고 userIdx 뽑아내기
+
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
 
 
-//            $res->result = getOptions();
-//            $res->isSuccess = TRUE;
-//            $res->code = 100;
-//            $res->message = "성공";
-//            echo json_encode($res, JSON_NUMERIC_CHECK);
-//            return;
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $orderIdx = getNextOrderIdx($userIdx);
+            $productInfo = $req->productInfo;
+            $paymentType = $req->paymentType;
+            $refundBank = $req->refundBank;
+            $refundOwner = $req->refundOwner;
+            $refundAccount = $req->refundAccount;
+            $receiver = $req->receiver;
+            $postalCode = $req->postalCode;
+            $address = $req->address;
+            $detailedAddress = $req->detailedAddress;
+            $phone = $req->phone;
+            $message = $req->message;
+
+
+//            validation
+
+            // 추후에 detailedProductIdx 중복성 체크하기
+
+            if (!isValidProductInfo($productInfo) or isRedundantProductInfo($productInfo)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "상품정보가 올바르지 않습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 결제방법 validation
+            if (!isValidPaymentType($paymentType)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "결제 유형이 올바르지 않습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 환불 은행 validation
+            if (!isValidRefundBank($refundBank)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "은행명 올바르지 않습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 환블 예금주, 환블 계좌 validation
+            // 예금주는 string 값인지 체크, 계좌는 번호만 입력할것
+            if (!is_string($refundOwner)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "refundOwner 데이터 타입 체크";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+            if (!preg_match("/^[0-9]/i", $refundAccount)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "환불 계좌는 번호만 입력하세요";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+//             수령자 체크
+            if (!is_string($receiver)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "receiver 데이터 타입 체크";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+//            우편번호, 주소, 상세주소, 연락처, 메세지
+            if (!preg_match("/^[0-9]/i", $postalCode)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "우편번호는 번호만 입력하세요";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 주소는 일단 그냥 스트링인지만 체크
+            if (!is_string($address) or !is_string($detailedAddress)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "주소는 문자열로 입력하세요";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 연락처
+            if (!isValidPhoneForm($phone)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "휴대폰 번호는 숫자만 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 메세지
+            if (!is_string($message)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "배송 메세지는 문자열로 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // Orders 테이블에 데이터 넣기, 재고 빼기
+            foreach ($productInfo as $item) {
+                $detailedProductIdx = $item->detailedProductIdx;
+                $number = $item->number;
+                
+                if ($paymentType == 'DEPOSIT') {
+                    $orderStatus = 100;
+                } else {
+                    $orderStatus = 110;
+                }
+                createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus);
+                takeOutStock($number, $detailedProductIdx);
+            }
+
+            //  Delivery 테이블에 데이터 넣기
+            createDeliveryInfo($orderIdx, $userIdx, $detailedProductIdx, $receiver, $postalCode, $address, $detailedAddress, $phone, $message);
+
+
+            $result = [];
+            $result['orderNum'] = createOrderNum(date("Ymd"), $orderIdx, $userIdx);
+            $res->result = $result;
+            $res->isSuccess = true;
+            $res->code = 100;
+            $res->message = "주문 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
     }
 
 } catch (\Exception $e) {
