@@ -585,7 +585,7 @@ try {
 
             if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
                 $res->isSuccess = FALSE;
-                $res->code = 202;
+                $res->code = 201;
                 $res->message = "토큰을 입력하세요.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
@@ -617,6 +617,9 @@ try {
             $detailedAddress = $req->detailedAddress;
             $phone = $req->phone;
             $message = $req->message;
+            $depositBank = $req->depositBank;
+            $depositor = $req->depositor;
+            $cashReceipt = $req->cashReceipt;
 
 
 //            validation
@@ -711,17 +714,45 @@ try {
                 return;
             }
 
+            // 무통장 계좌
+            if ($paymentType=="DEPOSIT" and !isValidDepositBank($depositBank)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "입금 은행을 확인하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 입금자
+            if ($paymentType=="DEPOSIT" and !is_string($depositor)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "입금자 명을 확인하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            // 현금 영수증
+            if ($paymentType=="DEPOSIT" and !isValidCashReceipt($cashReceipt)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "현금 영수증 여부를 확인하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+
             // Orders 테이블에 데이터 넣기, 재고 빼기
             foreach ($productInfo as $item) {
                 $detailedProductIdx = $item->detailedProductIdx;
                 $number = $item->number;
-                
+
                 if ($paymentType == 'DEPOSIT') {
                     $orderStatus = 100;
                 } else {
                     $orderStatus = 110;
                 }
-                createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus);
+                createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $depositBank, $depositor, $cashReceipt, $orderStatus);
                 takeOutStock($number, $detailedProductIdx);
             }
 

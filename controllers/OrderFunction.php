@@ -51,5 +51,17 @@ function createOrderNum($orderDate, $orderIdx, $userIdx){
     return $result;
 }
 
+function isValidDepositBank($depositBank)
+{
+    $valid = ['우체국', '우리', '신한', '국민', '기업', '농협'];
+    return in_array($depositBank, $valid);
+}
+
+function isValidCashReceipt($cashReceipt)
+{
+    $valid = ['PRIVATE', 'COMPANY', 'NO'];
+    return in_array($cashReceipt, $valid);
+}
+
 
 ?>
