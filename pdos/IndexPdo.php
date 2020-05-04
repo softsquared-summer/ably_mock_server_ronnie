@@ -668,7 +668,7 @@ from ProductStock where detailedProductIdx=?;";
 function createProductHearts($hearterIdx, $productIdx, $drawerIdx)
 {
     $pdo = pdoSqlConnect();
-    $query = "insert into ProductHeart (hearterIdx, productIdx, drawerIdx) values (?, ?, ?);";
+    $query = "insert into ProductHeart (hearterIdx, productIdx, drawerIdx) values (?, ?, ifnull(?, -1));";
 
     $st = $pdo->prepare($query);
     $st->execute([$hearterIdx, $productIdx, $drawerIdx]);
@@ -680,11 +680,13 @@ function createProductHearts($hearterIdx, $productIdx, $drawerIdx)
 //    READ 유효한 서랍 인덱스 확인
 function isValidDrawerIdx($userIdx, $drawerIdx)
 {
+    if ($drawerIdx==-1 or is_null($drawerIdx)){
+        return true;
+    }
     $pdo = pdoSqlConnect();
-
     $query = "select EXISTS(select *
               from ProductHeartDrawer
-              where userIdx = ? and detailedProductIdx = ?) as exist;";
+              where userIdx = ? and drawerIdx = ?) as exist;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx, $drawerIdx]);
@@ -696,9 +698,104 @@ function isValidDrawerIdx($userIdx, $drawerIdx)
     return intval($res[0]['exist']);
 }
 
+//    READ 이미 따봉을 누르고 있었는지 검사
+function isAlreadyHeart($hearterIdx, $productIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select EXISTS(select * from ProductHeart where hearterIdx = ? and productIdx = ? and isDeleted='N') as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$hearterIdx, $productIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+// DELETE 따봉 삭제
+function deleteHeart($hearterIdx, $productIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "update ProductHeart set isDeleted='Y' where hearterIdx=? and productIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$hearterIdx, $productIdx]);
+
+    $st = null;
+    $pdo = null;
+}
 
 
+//    READ 서랍 인덱스로 서랍 이름 가져오기
+function getDrawerNameByDrawerIdx($userIdx, $drawerIdx)
+{
+    if ($drawerIdx==-1 or is_null($drawerIdx)){
+        return "기본 서랍";
+    }
 
+    $pdo = pdoSqlConnect();
+    $query = "select drawerName from ProductHeartDrawer where userIdx=? and drawerIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0]['drawerName'];
+}
+
+//    READ 유저의 최신 drawerIdx 뽑아내기
+function getNextDrawerIdx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select ifnull(max(drawerIdx), 0)+1 drawerIdx from ProductHeartDrawer where userIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['drawerIdx']);
+}
+
+// CREATE
+function createDrawer($userIdx, $drawerIdx, $drawerName)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into ProductHeartDrawer (userIdx, drawerIdx, drawerName) values (?, ?, ?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx, $drawerName]);
+
+    $st = null;
+    $pdo = null;
+}
+
+
+//    READ 서랍명 중복 체크
+function isRedundantDrawerName($drawerName, $userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select EXISTS(select * from ProductHeartDrawer where drawerName = ? and userIdx=?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$drawerName, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){
 //        $pdo = pdoSqlConnect();

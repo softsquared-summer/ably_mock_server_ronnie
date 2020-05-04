@@ -715,7 +715,7 @@ try {
             }
 
             // 무통장 계좌
-            if ($paymentType=="DEPOSIT" and !isValidDepositBank($depositBank)) {
+            if ($paymentType == "DEPOSIT" and !isValidDepositBank($depositBank)) {
                 $res->isSuccess = false;
                 $res->code = 200;
                 $res->message = "입금 은행을 확인하세요.";
@@ -724,7 +724,7 @@ try {
             }
 
             // 입금자
-            if ($paymentType=="DEPOSIT" and !is_string($depositor)) {
+            if ($paymentType == "DEPOSIT" and !is_string($depositor)) {
                 $res->isSuccess = false;
                 $res->code = 200;
                 $res->message = "입금자 명을 확인하세요.";
@@ -733,7 +733,7 @@ try {
             }
 
             // 현금 영수증
-            if ($paymentType=="DEPOSIT" and !isValidCashReceipt($cashReceipt)) {
+            if ($paymentType == "DEPOSIT" and !isValidCashReceipt($cashReceipt)) {
                 $res->isSuccess = false;
                 $res->code = 200;
                 $res->message = "현금 영수증 여부를 확인하세요.";
@@ -774,7 +774,7 @@ try {
 * API Name : 상품 찜 API
 * 마지막 수정 날짜 : 20.05.04
 */
-        case "createProductHeart":
+        case "createProductHearts":
             http_response_code(200);
 
             // 토큰 검사
@@ -808,20 +808,100 @@ try {
                 return;
             }
 
-            $hearterId = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
-            $drawerIdx = $req->drawerIdx;
+            $hearterIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
-            // 서랍 검증
-            if (!isValidDrawerIdx($hearterId, $drawerIdx)){
-                $res->isSuccess = false;
-                $res->code = 202;
-                $res->message = "유효한 서랍 인덱스가 아납니다.";
+//            해당 유저가, 해당 게시글에 따봉을 누르고 있다면 삭제 프로세스
+            if (isAlreadyHeart($hearterIdx, $productIdx)) {
+                deleteHeart($hearterIdx, $productIdx);
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "찜 삭제 성공";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 return;
             }
 
 
-            createProductHearts($hearterId, $productIdx, $drawerIdx);
+//            아래 코드는 생성할때 만드는 거임.
+            $drawerIdx = $req->drawerIdx;
+            if ($drawerIdx == -1 or is_null($drawerIdx)) {
+                $drawerIdx = -1;
+            }
+
+
+            // 서랍 검증
+            if (!isValidDrawerIdx($hearterIdx, $drawerIdx)) {
+                $res->isSuccess = false;
+                $res->code = 202;
+                $res->message = "서랍 인덱스를 확인하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            createProductHearts($hearterIdx, $productIdx, $drawerIdx);
+            $result = [];
+            $result['drawerIdx'] = $drawerIdx;
+            $result['drawerName'] = getDrawerNameByDrawerIdx($hearterIdx, $drawerIdx);
+            $res->isSuccess = $result;
+            $res->code = 100;
+            $res->message = "찜 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+        /*
+* API No. 13
+* API Name : 서랍 생성 API
+* 마지막 수정 날짜 : 20.05.04
+*/
+        case "createDrawer":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $drawerIdx = getNextDrawerIdx($userIdx);
+
+            // 서랍 이름 validation
+            $drawerName = $req->drawerName;
+            if (!is_string($drawerName)){
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "drawerName 데이터 타입 확인해주세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+            // 서랍 이름 중복 체크
+            if (isRedundantDrawerName($drawerName, $userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "이미 중복되는 서랍 이름이 있어요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            createDrawer($userIdx, $drawerIdx, $drawerName);
+            $result['drawerIdx'] = $drawerIdx;
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "성공";
@@ -829,11 +909,11 @@ try {
             return;
 
         /*
-* API No. 13
-* API Name : 상품 찜 삭제 API
-* 마지막 수정 날짜 : 20.05.04
+* API No. 14
+* API Name : 서랍 목록 조회 API
+* 마지막 수정 날짜 : 20.05.05
 */
-        case "deleteProductHeart":
+        case "getDrawers":
             http_response_code(200);
 
             // 토큰 검사
@@ -857,24 +937,16 @@ try {
                 return;
             }
 
-            // path variable 유효성 검사
-            $productIdx = $vars['productIdx'];
-            if (!isValidProductIdx($productIdx)) {
-                $res->isSuccess = false;
-                $res->code = 200;
-                $res->message = "유효한 요청이 아닙니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                return;
-            }
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
-            $hearterId = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
-
-            delteProductHearts($hearterId, $productIdx);
+            $res->result->drawerIdx = $drawerIdx;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
+
+
 
     }
 
