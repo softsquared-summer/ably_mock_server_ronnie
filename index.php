@@ -31,16 +31,21 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/signIn', ['MainController', 'validJwt']);
     $r->addRoute('GET', '/users', ['MainController', 'getUsers']);
     $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
+
     $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
     $r->addRoute('GET', '/new-products', ['MainController', 'getNewProducts']);
     $r->addRoute('GET', '/new-products/best', ['MainController', 'getNewBestProducts']);
+
     $r->addRoute('GET', '/products/{productIdx}', ['MainController', 'getProductDetail']);
     $r->addRoute('GET', '/products/{productIdx}/options', ['MainController', 'getOptions']);
+
     $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
+    $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
+    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 작업중
 
     $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
     $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);
-    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']);
+    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']); // 고민중
 
 
 

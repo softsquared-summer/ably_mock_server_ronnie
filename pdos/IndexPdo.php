@@ -680,7 +680,7 @@ function createProductHearts($hearterIdx, $productIdx, $drawerIdx)
 //    READ 유효한 서랍 인덱스 확인
 function isValidDrawerIdx($userIdx, $drawerIdx)
 {
-    if ($drawerIdx==-1 or is_null($drawerIdx)){
+    if ($drawerIdx == -1 or is_null($drawerIdx)) {
         return true;
     }
     $pdo = pdoSqlConnect();
@@ -732,7 +732,7 @@ function deleteHeart($hearterIdx, $productIdx)
 //    READ 서랍 인덱스로 서랍 이름 가져오기
 function getDrawerNameByDrawerIdx($userIdx, $drawerIdx)
 {
-    if ($drawerIdx==-1 or is_null($drawerIdx)){
+    if ($drawerIdx == -1 or is_null($drawerIdx)) {
         return "기본 서랍";
     }
 
@@ -795,6 +795,96 @@ function isRedundantDrawerName($drawerName, $userIdx)
     $st = null;
     $pdo = null;
     return intval($res[0]['exist']);
+}
+
+//    READ 유저 인덱스로 주문 번호, 날짜 얻어오기
+function getOrderNumDateByUserIdx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select distinct concat(date_format(orderDate, '%Y%m%d'), '-', OrderIdx, '-', userIdx) orderNum,
+                date_format(orderDate, '%Y.%m.%d')                                    orderDate
+from Orders
+where userIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
+
+//    READ 주문번호로 상품관련 정보 얻어오기
+function getProductInfoByOrderNum($orderNum)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select productIdx,
+       detailedProductIdx,
+       thumbnailUrl,
+       concat(format(detailedPrice, -1), '원') detailedPrice,
+       productName,
+       firstOption,
+       secondOption,
+       orderStatus,
+       statusName
+from (select concat(date_format(orderDate, '%Y%m%d'), '-', OrderIdx, '-', userIdx) orderNum,
+             userIdx,
+             orderDate,
+             orderIdx,
+             Orders.orderStatus,
+             statusName,
+             productInfo.*
+      from Orders
+               inner join (select P.productIdx,
+                                  productName,
+                                  detailedProductIdx,
+                                  firstOption,
+                                  secondOption,
+                                  detailedPrice,
+                                  thumbnailUrl
+                           from ProductStock
+                                    inner join Product P on P.productIdx = ProductStock.productIdx
+                                    inner join (select productIdx, imgUrl thumbnailUrl
+                                                from ProductImg
+                                                where isThumnail = 'Y') thumbnailInfo
+                                               on ProductStock.productIdx = thumbnailInfo.productIdx) productInfo
+                          on Orders.detailedProductIdx = productInfo.detailedProductIdx
+               inner join OrderStatusCode on orderStatus = OrderStatusCode.statusCode) productInfo
+where productInfo.orderNum = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderNum]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
+
+//    READ 주문번호로 상품관련 정보 얻어오기
+function getShippingInfoByUserIDx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select count(if(200 <= orderStatus and orderStatus < 210, 1, null)) shipping,
+       count(if(210 <= orderStatus and orderStatus < 220, 1, null)) shipped,
+       count(if(500 <= orderStatus and orderStatus < 800, 1, null)) cancel
+from Orders
+where userIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0];
 }
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){

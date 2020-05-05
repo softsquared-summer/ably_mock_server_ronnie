@@ -881,7 +881,7 @@ try {
 
             // 서랍 이름 validation
             $drawerName = $req->drawerName;
-            if (!is_string($drawerName)){
+            if (!is_string($drawerName)) {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "drawerName 데이터 타입 확인해주세요.";
@@ -890,7 +890,7 @@ try {
                 return;
             }
             // 서랍 이름 중복 체크
-            if (isRedundantDrawerName($drawerName, $userIdx)){
+            if (isRedundantDrawerName($drawerName, $userIdx)) {
                 $res->isSuccess = FALSE;
                 $res->code = 203;
                 $res->message = "이미 중복되는 서랍 이름이 있어요.";
@@ -947,6 +947,118 @@ try {
             return;
 
 
+        /*
+* API No. 15
+* API Name : 주문 상세 조회 API
+* 마지막 수정 날짜 : 20.05.05
+*/
+        case "getOrderDetail":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            // orderNum은 20200505-1-1 각각 날짜-주문인덱스-유저인덱스
+            $orderNum = $vars['orderNum'];
+            $orderDate = explode('-', $orderNum)[0];
+            $orderIdx = explode('-', $orderNum)[1];
+            $orderUserIdx = explode('-', $orderNum)[2];
+
+            if ($orderUserIdx != $userIdx) {
+                $res->isSuccess = FALSE;
+                $res->code = 210;
+                $res->message = "조회 권한이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+
+            $res->result->drawerIdx = $drawerIdx;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+        /*
+* API No. 16
+* API Name : 주문 목록 조회 API
+* 마지막 수정 날짜 : 20.05.05
+*/
+        case "getOrders":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            $result = [];
+            $result =  getShippingInfoByUserIDx($userIdx);
+
+            // 유저 인덱스로 주문 번호와, 날짜를 뽑아내보자
+            $orderInfo = getOrderNumDateByUserIdx($userIdx);
+            if (empty($orderInfo)){
+                $res->isSuccess = FALSE;
+                $res->code = 200;
+                $res->message = "주문목록이 없어요!";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            // 각 주문 번호에 해당하는 상품 정보를 추가하자.
+            for ($i = 0; $i < sizeof($orderInfo); $i++) {
+                $orderNum= $orderInfo[$i]['orderNum'];
+                $orderInfo[$i]['productInfo'] = getProductInfoByOrderNum($orderNum);
+            }
+
+            $result['orderInfo'] = $orderInfo;
+
+            $res->result = $result;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
 
     }
 
