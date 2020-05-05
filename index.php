@@ -41,7 +41,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
 
     $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
     $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
-    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 작업중
+    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 작업중 추후에 작업하자 ㅅㅂ 너무간거같기도하고
 
     $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
     $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);

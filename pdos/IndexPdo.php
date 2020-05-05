@@ -886,6 +886,42 @@ where userIdx = ?;";
     $pdo = null;
     return $res[0];
 }
+
+//    READ 유저 인덱스로 서랍 목록 가져오기
+function getDrawersByUserIdx($userIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select drawerInfo.drawerIdx, drawerName, concat('찜한 상품 ', productCnt, '개') productCnt, thumbnailUrl
+from (select ProductHeart.drawerIdx,
+             ifnull(drawerName, '기본 서랍') drawerName,
+             count(*)                    productCnt
+      from ProductHeart
+               left join (select userIdx, drawerIdx, drawerName from ProductHeartDrawer where isDeleted = 'N') PHD
+                         on ProductHeart.hearterIdx = PHD.userIdx and ProductHeart.drawerIdx = PHD.drawerIdx
+      where ProductHeart.isDeleted = 'N'
+        and hearterIdx = ?
+      group by ProductHeart.drawerIdx) drawerInfo
+         inner join (select drawerIdx, group_concat(thumbnailUrl) thumbnailUrl
+                     from (select hearterIdx, drawerIdx, PI.productIdx, imgUrl thumbnailUrl, ProductHeart.createdAt
+                           from ProductHeart
+                                    inner join ProductImg PI on ProductHeart.productIdx = PI.productIdx
+                           where ProductHeart.isDeleted = 'N'
+                             and PI.isDeleted = 'N'
+                             and isThumnail = 'Y'
+                             and hearterIdx = ?
+                           order by drawerIdx, ProductHeart.createdAt DESC) T
+                     group by drawerIdx) thumbnailInfo on drawerInfo.drawerIdx = thumbnailInfo.drawerIdx;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){
 //        $pdo = pdoSqlConnect();

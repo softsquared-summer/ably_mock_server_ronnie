@@ -939,7 +939,23 @@ try {
 
             $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
-            $res->result->drawerIdx = $drawerIdx;
+            // 유저인덱스를 기반으로 자신의 서랍 목록을 조회한다.
+            $result = getDrawersByUserIdx($userIdx);
+
+
+
+            // 섬네일을 최대 4개, 리스트 형태로 반환해
+            for ($i = 0; $i < sizeof($result); $i++) {
+                $thumbList = explode(',', $result[$i]['thumbnailUrl']);
+                if (sizeof($thumbList)>4){
+                    $result[$i]['thumbnailUrl'] = array_slice($thumbList, 0, 4);
+                }
+                else{
+                    $result[$i]['thumbnailUrl'] = $thumbList;
+                }
+            }
+
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "성공";
@@ -983,6 +999,7 @@ try {
             $orderIdx = explode('-', $orderNum)[1];
             $orderUserIdx = explode('-', $orderNum)[2];
 
+
             if ($orderUserIdx != $userIdx) {
                 $res->isSuccess = FALSE;
                 $res->code = 210;
@@ -993,7 +1010,7 @@ try {
             }
 
 
-            $res->result->drawerIdx = $drawerIdx;
+//            $res->result->drawerIdx = $drawerIdx;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "성공";
@@ -1032,11 +1049,11 @@ try {
             $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
             $result = [];
-            $result =  getShippingInfoByUserIDx($userIdx);
+            $result = getShippingInfoByUserIDx($userIdx);
 
             // 유저 인덱스로 주문 번호와, 날짜를 뽑아내보자
             $orderInfo = getOrderNumDateByUserIdx($userIdx);
-            if (empty($orderInfo)){
+            if (empty($orderInfo)) {
                 $res->isSuccess = FALSE;
                 $res->code = 200;
                 $res->message = "주문목록이 없어요!";
@@ -1047,7 +1064,7 @@ try {
 
             // 각 주문 번호에 해당하는 상품 정보를 추가하자.
             for ($i = 0; $i < sizeof($orderInfo); $i++) {
-                $orderNum= $orderInfo[$i]['orderNum'];
+                $orderNum = $orderInfo[$i]['orderNum'];
                 $orderInfo[$i]['productInfo'] = getProductInfoByOrderNum($orderNum);
             }
 
