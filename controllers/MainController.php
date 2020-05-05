@@ -380,7 +380,7 @@ try {
 
 //          비회원의 추천상품 조회는 가장 잘 팔리는 순서대로 반환
             if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
-                $res->result = getRecommendedProd();
+                $res->result = getRecommendedProd(null);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "조회 성공";
@@ -406,7 +406,7 @@ try {
 
             // 최근 본 상품이 없다면, 그냥 비회원과 마찬가지로 조회한다.
             if ($category == false) {
-                $res->result = getRecommendedProd();
+                $res->result = getRecommendedProd($userIdx);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "조회 성공";
@@ -415,7 +415,7 @@ try {
             }
 
             // 최근 본 상품이 있다면 추천해서 조회
-            $res->result = getRecommendedProdByCate($category);
+            $res->result = getRecommendedProdByCate($userIdx, $category);
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";
@@ -430,12 +430,33 @@ try {
 */
         case "getNewProducts":
             http_response_code(200);
-            $res->result = getNewProducts();
+            // 회원이 접속할때와 비회원이 들어올때를 나누자.
+            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])){
+                $res->result = getNewProducts(null);
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "조회 성공";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                break;
+            }
+            $userIdx=getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            $res->result = getNewProducts($userIdx);
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
-            break;
+            return;
 
         /*
 * API No. 6
@@ -444,7 +465,28 @@ try {
 */
         case "getNewBestProducts":
             http_response_code(200);
-            $res->result = getNewBestProducts();
+            // 회원이 접속할때와 비회원이 들어올때를 나누자.
+            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])){
+                $res->result = getNewBestProducts(null);
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "조회 성공";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                break;
+            }
+            $userIdx=getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            $res->result = getNewBestProducts($userIdx);
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";

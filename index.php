@@ -45,7 +45,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
 
     $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
     $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);
-    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']); // 고민중
+    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']);
 
 
 

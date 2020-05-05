@@ -206,7 +206,7 @@ function getBanner()
 }
 
 //    READ
-function getRecommendedProd()
+function getRecommendedProd($userIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -216,23 +216,27 @@ function getRecommendedProd()
        format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
        M.marketIdx,
        marketName,
-       if(char_length(productName)>15, concat(left(productName, 15), '…'), productName) productName,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
-       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
+
 from Product P
          left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
          left join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus < 210
+                    where 100 <= orderStatus and orderStatus < 210
+                       or orderStatus = 333
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
+                   on P.productIdx = HeartInfo.productIdx
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([]);
+    $st->execute([$userIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -243,7 +247,7 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getRecommendedProdByCate($categoryIdx)
+function getRecommendedProdByCate($userIdx, $categoryIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -253,9 +257,9 @@ function getRecommendedProdByCate($categoryIdx)
        format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
        M.marketIdx,
        marketName,
-       if(char_length(productName)>15, concat(left(productName, 15), '…'), productName) productName,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
-       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
@@ -266,11 +270,13 @@ from Product P
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-where categoryIdx=?
-order by purchaseCnt DESC, P.createdAt DESC";
+         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
+                   on P.productIdx = HeartInfo.productIdx
+where categoryIdx = ?
+order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$categoryIdx]);
+    $st->execute([$userIdx,$categoryIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -307,7 +313,7 @@ limit 1;";
 }
 
 //    READ
-function getNewProducts()
+function getNewProducts($userIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -319,7 +325,7 @@ function getNewProducts()
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
 #        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
-       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
@@ -330,11 +336,13 @@ from Product P
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
+                   on P.productIdx = HeartInfo.productIdx
 where timestampdiff(day, P.createdAt, now()) <= 3
 order by P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([]);
+    $st->execute([$userIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -345,7 +353,7 @@ order by P.createdAt DESC;";
 }
 
 //    READ
-function getNewBestProducts()
+function getNewBestProducts($userIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -357,7 +365,7 @@ function getNewBestProducts()
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
-       if(EXISTS(select * from ProductHeart), 'N', 'N')                                             isMyHeart,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
@@ -366,14 +374,18 @@ from Product P
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus < 210
+                    where 100 <= orderStatus and orderStatus < 210
+                       or orderStatus = 333
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-where timestampdiff(day, P.createdAt, now()) <= 3 and !isnull(purchaseCnt)
+         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
+                   on P.productIdx = HeartInfo.productIdx
+where timestampdiff(day, P.createdAt, now()) <= 3
+#   and !isnull(purchaseCnt)
 order by purchaseCnt DESC
 limit 10;";
 
     $st = $pdo->prepare($query);
-    $st->execute([]);
+    $st->execute([$userIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
