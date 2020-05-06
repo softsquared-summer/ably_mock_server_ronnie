@@ -12,20 +12,46 @@ date_default_timezone_set('Asia/Seoul');
 ini_set('default_charset', 'utf8mb4');
 
 //에러출력하게 하는 코드
-error_reporting(E_ALL); ini_set("display_errors", 1);
+//error_reporting(E_ALL); ini_set("display_errors", 1);
 
 //Main Server API
 $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) {
     /* ******************   Test   ****************** */
-    $r->addRoute('GET', '/', ['IndexController', 'index']);
-    $r->addRoute('GET', '/test', ['IndexController', 'test']);
-    $r->addRoute('GET', '/test/{testNo}', ['IndexController', 'testDetail']);
-    $r->addRoute('POST', '/test', ['IndexController', 'testPost']);
-    $r->addRoute('GET', '/jwt', ['MainController', 'validateJwt']);
-    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
+//    $r->addRoute('GET', '/', ['IndexController', 'index']);
+//    $r->addRoute('GET', '/test', ['IndexController', 'test']);
+//    $r->addRoute('GET', '/test/{testNo}', ['IndexController', 'testDetail']);
+//    $r->addRoute('POST', '/test', ['IndexController', 'testPost']);
+//    $r->addRoute('GET', '/jwt', ['MainController', 'validateJwt']);
+//    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
 
 //    에이블리
-    $r->addRoute('POST', '/register', ['MainController', 'createUser']);
+
+    $r->addRoute('POST', '/signUp', ['MainController', 'createUser']);
+    $r->addRoute('POST', '/signIn', ['MainController', 'createLogin']);
+    $r->addRoute('GET', '/signIn', ['MainController', 'validJwt']);
+    $r->addRoute('GET', '/users', ['MainController', 'getUsers']);
+    $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
+
+    $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
+    $r->addRoute('GET', '/new-products', ['MainController', 'getNewProducts']);
+    $r->addRoute('GET', '/new-products/best', ['MainController', 'getNewBestProducts']);
+
+    $r->addRoute('GET', '/products/{productIdx}', ['MainController', 'getProductDetail']);
+    $r->addRoute('GET', '/products/{productIdx}/options', ['MainController', 'getOptions']);
+
+    $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
+    $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
+    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 주문 상세 조회, 작업 중
+    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['MainController', 'modifyStatus']); // 주문 상태 변경, 작업 중
+
+    $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
+    $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);
+    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']);
+    $r->addRoute('GET', '/drawers/{drawerIdx}', ['MainController', 'getDrawerDetail']);
+    $r->addRoute('DELETE', '/drawers/{drawerIdx}', ['MainController', 'deleteDrawer']);
+
+
+
 
 
 
