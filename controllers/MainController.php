@@ -431,7 +431,7 @@ try {
         case "getNewProducts":
             http_response_code(200);
             // 회원이 접속할때와 비회원이 들어올때를 나누자.
-            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])){
+            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
                 $res->result = getNewProducts(null);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
@@ -449,7 +449,7 @@ try {
                 addErrorLogs($errorLogs, $res, $req);
                 break;
             }
-            $userIdx=getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
             $res->result = getNewProducts($userIdx);
             $res->isSuccess = TRUE;
@@ -466,7 +466,7 @@ try {
         case "getNewBestProducts":
             http_response_code(200);
             // 회원이 접속할때와 비회원이 들어올때를 나누자.
-            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])){
+            if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
                 $res->result = getNewBestProducts(null);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
@@ -484,7 +484,7 @@ try {
                 addErrorLogs($errorLogs, $res, $req);
                 break;
             }
-            $userIdx=getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
             $res->result = getNewBestProducts($userIdx);
             $res->isSuccess = TRUE;
@@ -985,14 +985,12 @@ try {
             $result = getDrawersByUserIdx($userIdx);
 
 
-
             // 섬네일을 최대 4개, 리스트 형태로 반환해
             for ($i = 0; $i < sizeof($result); $i++) {
                 $thumbList = explode(',', $result[$i]['thumbnailUrl']);
-                if (sizeof($thumbList)>4){
+                if (sizeof($thumbList) > 4) {
                     $result[$i]['thumbnailUrl'] = array_slice($thumbList, 0, 4);
-                }
-                else{
+                } else {
                     $result[$i]['thumbnailUrl'] = $thumbList;
                 }
             }
@@ -1118,6 +1116,189 @@ try {
             $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
+
+
+        /*
+* API No. 17
+* API Name : 주문 상태 변경 API
+* 마지막 수정 날짜 : 20.05.06
+*/
+        case "modifyStatus":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            $result = [];
+            $result = getShippingInfoByUserIDx($userIdx);
+
+            // 유저 인덱스로 주문 번호와, 날짜를 뽑아내보자
+            $orderInfo = getOrderNumDateByUserIdx($userIdx);
+            if (empty($orderInfo)) {
+                $res->isSuccess = FALSE;
+                $res->code = 200;
+                $res->message = "주문목록이 없어요!";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            // 각 주문 번호에 해당하는 상품 정보를 추가하자.
+            for ($i = 0; $i < sizeof($orderInfo); $i++) {
+                $orderNum = $orderInfo[$i]['orderNum'];
+                $orderInfo[$i]['productInfo'] = getProductInfoByOrderNum($orderNum);
+            }
+
+            $result['orderInfo'] = $orderInfo;
+
+            $res->result = $result;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+        /*
+* API No. 18
+* API Name : 서랍 상세 조회 API
+* 마지막 수정 날짜 : 20.05.06
+*/
+        case "getDrawerDetail":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+            // drawerIdx 검증
+            if (!isValidDrawerIdx($userIdx, $vars['drawerIdx'])) {
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "유효하지 않은 서랍 인덱스입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $drawerIdx = $vars['drawerIdx'];
+
+            $result = [];
+            $result['userIdx'] = $userIdx;
+            $result['drawerIdx'] = $drawerIdx;
+            $result['productCnt'] = getDrawerProductCnt($userIdx, $drawerIdx);
+            $result['productInfo'] = getDrawerDetail($userIdx, $drawerIdx);
+
+            $res->result = $result;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+
+        /*
+* API No. 19
+* API Name : 서랍 삭제 API
+* 마지막 수정 날짜 : 20.05.06
+*/
+        case "deleteDrawer":
+            http_response_code(200);
+
+            // 토큰 검사
+            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "토큰을 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+
+            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                $res->isSuccess = FALSE;
+                $res->code = 201;
+                $res->message = "유효하지 않은 토큰입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+            $drawerIdx = $vars['drawerIdx'];
+
+            // drawerIdx 검증
+            if (!isValidDrawerIdx($userIdx, $drawerIdx)) {
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "유효하지 않은 서랍 인덱스입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+            // 기본 서랍은 삭제 불가
+            if ($drawerIdx==-1){
+                $res->isSuccess = FALSE;
+                $res->code = 202;
+                $res->message = "기본 서랍은 삭제할 수 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            // ProductHeartDrawer에 있는 서랍 삭제
+            deleteDrawer($userIdx, $drawerIdx);
+            // ProductHeart에서 해당 서랍에 물건도 다 삭제
+            deleteDrawerProducts($userIdx, $drawerIdx);
+
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
+            return;
+
+
+
 
     }
 

@@ -41,11 +41,14 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
 
     $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
     $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
-    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 작업중 추후에 작업하자 ㅅㅂ 너무간거같기도하고
+    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 주문 상세 조회, 작업 중
+    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['MainController', 'modifyStatus']); // 주문 상태 변경, 작업 중
 
     $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
     $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);
     $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']);
+    $r->addRoute('GET', '/drawers/{drawerIdx}', ['MainController', 'getDrawerDetail']);
+    $r->addRoute('DELETE', '/drawers/{drawerIdx}', ['MainController', 'deleteDrawer']);
 
 
 

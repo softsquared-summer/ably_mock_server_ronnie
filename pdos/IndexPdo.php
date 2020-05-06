@@ -276,7 +276,7 @@ where categoryIdx = ?
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userIdx,$categoryIdx]);
+    $st->execute([$userIdx, $categoryIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -698,7 +698,7 @@ function isValidDrawerIdx($userIdx, $drawerIdx)
     $pdo = pdoSqlConnect();
     $query = "select EXISTS(select *
               from ProductHeartDrawer
-              where userIdx = ? and drawerIdx = ?) as exist;";
+              where userIdx = ? and drawerIdx = ? and isDeleted='N') as exist;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx, $drawerIdx]);
@@ -797,7 +797,7 @@ function isRedundantDrawerName($drawerName, $userIdx)
 {
     $pdo = pdoSqlConnect();
 
-    $query = "select EXISTS(select * from ProductHeartDrawer where drawerName = ? and userIdx=?) as exist;";
+    $query = "select EXISTS(select * from ProductHeartDrawer where drawerName = ? and userIdx=? and isDeleted='N') as exist;";
 
     $st = $pdo->prepare($query);
     $st->execute([$drawerName, $userIdx]);
@@ -934,6 +934,89 @@ from (select ProductHeart.drawerIdx,
     $pdo = null;
     return $res;
 }
+
+
+//    READ 유저 인덱스로 서랍 목록 가져오기
+function getDrawerDetail($userIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select thumbnailUrl, discountRatio, displayedPrice, ProductHeart.productIdx, productName
+from ProductHeart
+         inner join (select productIdx,
+                            discountRatio,
+                            format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price),
+                                   0) as displayedPrice,
+                            productName
+                     from Product) ProductInfo on ProductHeart.productIdx = ProductInfo.productIdx
+         inner join (select productIdx, imgUrl thumbnailUrl
+                     from ProductImg
+                     where isThumnail = 'Y'
+                       and isDeleted = 'N') ImgInfo on ProductHeart.productIdx = ImgInfo.productIdx
+where isDeleted = 'N'
+  and hearterIdx = ?
+  and drawerIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res;
+}
+
+//    READ 주문번호로 상품관련 정보 얻어오기
+function getDrawerProductCnt($userIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+
+    $query = "select count(*) productCnt
+from ProductHeart
+where ProductHeart.isDeleted = 'N'
+  and hearterIdx = ?
+  and drawerIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0]['productCnt'];
+}
+
+
+// DELETE
+function deleteDrawer($userIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "update ProductHeartDrawer set isDeleted='Y' where userIdx=? and drawerIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $drawerIdx]);
+
+    $st = null;
+    $pdo = null;
+}
+
+// DELETE
+function deleteDrawerProducts($hearterIdx, $drawerIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "update ProductHeart set isDeleted='Y' where hearterIdx=? and drawerIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$hearterIdx, $drawerIdx]);
+
+    $st = null;
+    $pdo = null;
+}
+
+
+
 // UPDATE
 //    function updateMaintenanceStatus($message, $status, $no){
 //        $pdo = pdoSqlConnect();
