@@ -580,6 +580,7 @@ function createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $pay
 
     switch ($paymentType) {
         case "DEPOSIT":
+
             $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount,
                     depositBank, depositor, cashReceipt, orderStatus)
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
@@ -588,13 +589,13 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
             $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $depositBank, $depositor, $cashReceipt, $orderStatus]);
             break;
 
-
         default:
-            $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount, orderStatus)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
+
+            $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount, orderStatus, cashReceipt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
             $st = $pdo->prepare($query);
-            $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus]);
+            $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus, $cashReceipt]);
             break;
     }
     $st = null;

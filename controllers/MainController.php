@@ -182,8 +182,7 @@ try {
 
                     // jwt 발급
                     $userIdx = getUserIdxByEmail($req->email);
-
-                    $jwt = getJWToken($userIdx, $req->email, $req->password, JWT_SECRET_KEY);
+                    $jwt = getJWToken($userIdx, $req->email, JWT_SECRET_KEY);
 
                     $res->result = $jwt;
                     $res->isSuccess = TRUE;
@@ -729,7 +728,7 @@ try {
                 return;
             }
 
-            // 주소는 일단 그냥 스트링인지만 체크
+            // 주소는 일단 스트링인지만 체크
             if (!is_string($address) or !is_string($detailedAddress)) {
                 $res->isSuccess = false;
                 $res->code = 200;
@@ -794,6 +793,7 @@ try {
                 } else {
                     $orderStatus = 110;
                 }
+
                 createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $depositBank, $depositor, $cashReceipt, $orderStatus);
                 takeOutStock($number, $detailedProductIdx);
             }
