@@ -221,18 +221,15 @@ function getRecommendedProd($userIdx)
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
-
 from Product P
-         INNER join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         INNER join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus and orderStatus < 210
-                       or orderStatus = 333
+                    where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
@@ -247,7 +244,7 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getRecommendedProdByCate($userIdx, $categoryIdx)
+function getRecommendedProdByCate($userIdx, $parents)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -258,25 +255,24 @@ function getRecommendedProdByCate($userIdx, $categoryIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                           purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
-where categoryIdx = ?
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
+         inner join ProductCategory PC on P.categoryIdx = PC.categoryIdx and parents = ?
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userIdx, $categoryIdx]);
+    $st->execute([$userIdx, $parents]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -287,15 +283,17 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getLastestViewedCategory($userIdx)
+function getLastestViewedCategoryParents($userIdx)
 {
     $pdo = pdoSqlConnect();
-    $query = "select categoryIdx
-from Product P
-         inner join VisitHistory VH on P.productIdx = VH.productIdx
-where VH.visitorIdx = ?
-order by VH.visitTime DESC
-limit 1;";
+    $query = "select parents
+from ProductCategory
+         inner join (select categoryIdx
+                     from Product P
+                              inner join VisitHistory VH on P.productIdx = VH.productIdx
+                     where VH.visitorIdx = ?
+                     order by VH.visitTime DESC
+                     limit 1) categoryInfo on ProductCategory.categoryIdx = categoryInfo.categoryIdx;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
@@ -309,7 +307,7 @@ limit 1;";
         return false;
     }
 
-    return intval($res[0]['categoryIdx']);
+    return intval($res[0]['parents']);
 }
 
 //    READ

@@ -402,10 +402,10 @@ try {
             }
 
             $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
-            $category = getLastestViewedCategory($userIdx);
+            $parentsCategory = getLastestViewedCategoryParents($userIdx);
 
             // 최근 본 상품이 없다면, 그냥 비회원과 마찬가지로 조회한다.
-            if ($category == false) {
+            if ($parentsCategory == false) {
                 $res->result = getRecommendedProd($userIdx);
                 $res->isSuccess = TRUE;
                 $res->code = 100;
@@ -415,7 +415,7 @@ try {
             }
 
             // 최근 본 상품이 있다면 추천해서 조회
-            $res->result = getRecommendedProdByCate($userIdx, $category);
+            $res->result = getRecommendedProdByCate($userIdx, $parentsCategory);
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";
