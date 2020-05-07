@@ -230,7 +230,7 @@ from Product P
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
          left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
-order by purchaseCnt DESC, P.createdAt DESC ?;";
+order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
