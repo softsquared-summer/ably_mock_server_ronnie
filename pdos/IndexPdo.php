@@ -217,14 +217,14 @@ function getRecommendedProd($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         INNER join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
+         INNER join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
@@ -258,7 +258,7 @@ function getRecommendedProdByCate($userIdx, $categoryIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
@@ -364,7 +364,7 @@ function getNewBestProducts($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
