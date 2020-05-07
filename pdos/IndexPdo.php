@@ -206,7 +206,46 @@ function getBanner()
 }
 
 //    READ
-function getRecommendedProd($userIdx)
+function getRecommendedProd($userIdx, $page)
+{
+    $pdo = pdoSqlConnect();
+    // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
+    $query = "select P.productIdx,
+       imgUrl                                                                                       thumbnailUrl,
+       concat(discountRatio, '%')                                                                as discountRatio,
+       format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
+       M.marketIdx,
+       marketName,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
+       isHotDeal,
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
+from Product P
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
+         left join (select productIdx, sum(number) as purchaseCnt
+                    from Orders
+                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
+                    where 100 <= orderStatus < 210
+                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
+order by purchaseCnt DESC, P.createdAt DESC";
+    $query = $query . " limit " . (($page - 1) * 10) . ", 10;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+//    READ
+function getAllRecommendedProd($userIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -244,7 +283,7 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getRecommendedProdByCate($userIdx, $parents)
+function getRecommendedProdByCate($userIdx, $parents, $page)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -269,7 +308,47 @@ from Product P
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
          left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
          inner join ProductCategory PC on P.categoryIdx = PC.categoryIdx and parents = ?
-order by purchaseCnt DESC, P.createdAt DESC limit 1, 10";
+order by purchaseCnt DESC, P.createdAt DESC";
+    $query = $query . " limit " . (($page - 1) * 10) . ", 10;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx, $parents]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+//    READ
+function getAllRecommendedProdByCate($userIdx, $parents)
+{
+    $pdo = pdoSqlConnect();
+    // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
+    $query = "select P.productIdx,
+       imgUrl                                                                                       thumbnailUrl,
+       concat(discountRatio, '%')                                                                as discountRatio,
+       format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
+       M.marketIdx,
+       marketName,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                           purchaseCnt,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
+       isHotDeal,
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
+from Product P
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
+         left join (select productIdx, sum(number) as purchaseCnt
+                    from Orders
+                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
+                    where 100 <= orderStatus < 210
+                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
+         inner join ProductCategory PC on P.categoryIdx = PC.categoryIdx and parents = ?
+order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx, $parents]);
@@ -311,7 +390,42 @@ from ProductCategory
 }
 
 //    READ
-function getNewProducts($userIdx)
+function getNewProducts($userIdx, $page)
+{
+    $pdo = pdoSqlConnect();
+    // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
+    $query = "select P.productIdx,
+       imgUrl                                                                                       thumbnailUrl,
+       concat(discountRatio, '%')                                                                as discountRatio,
+       format(if(discountRatio != 0, round(price * 0.01 * (100 - discountRatio), -1), price), 0) as displayedPrice,
+       M.marketIdx,
+       marketName,
+       if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
+       if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
+       isHotDeal,
+       (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
+from Product P
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail='Y'
+         inner join Market M on P.marketIdx = M.marketIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
+where timestampdiff(day, P.createdAt, now()) <= 3
+order by P.createdAt DESC";
+    $query = $query . " limit " . (($page - 1) * 10) . ", 10;";
+
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+//    READ
+function getAllNewProducts($userIdx)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -331,6 +445,7 @@ from Product P
          left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 where timestampdiff(day, P.createdAt, now()) <= 3
 order by P.createdAt DESC;";
+
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
@@ -917,7 +1032,7 @@ from (select ProductHeart.drawerIdx,
                      group by drawerIdx) thumbnailInfo on drawerInfo.drawerIdx = thumbnailInfo.drawerIdx;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userIdx,$userIdx]);
+    $st->execute([$userIdx, $userIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -925,7 +1040,6 @@ from (select ProductHeart.drawerIdx,
     $pdo = null;
     return $res;
 }
-
 
 
 //    READ 유저 인덱스로 서랍 목록 가져오기
@@ -1011,9 +1125,9 @@ function deleteDrawerProducts($hearterIdx, $drawerIdx)
 function isValidOrderNum($orderNum)
 {
     // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
-    $orderDate = explode('-',$orderNum)[0];
-    $orderIdx = explode('-',$orderNum)[1];
-    $userIdx = explode('-',$orderNum)[2];
+    $orderDate = explode('-', $orderNum)[0];
+    $orderIdx = explode('-', $orderNum)[1];
+    $userIdx = explode('-', $orderNum)[2];
 
 
     $pdo = pdoSqlConnect();
@@ -1046,11 +1160,12 @@ function isValidOrderName($orderName)
 }
 
 // READ 주문 번호로 주문 상태 코드 알아내기
-function getOrderStatusByOrderNum($orderNum){
+function getOrderStatusByOrderNum($orderNum)
+{
     // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
-    $orderDate = explode('-',$orderNum)[0];
-    $orderIdx = explode('-',$orderNum)[1];
-    $userIdx = explode('-',$orderNum)[2];
+    $orderDate = explode('-', $orderNum)[0];
+    $orderIdx = explode('-', $orderNum)[1];
+    $userIdx = explode('-', $orderNum)[2];
 
     $pdo = pdoSqlConnect();
     $query = "select distinct orderStatus from Orders where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx = ?;";
@@ -1066,7 +1181,8 @@ function getOrderStatusByOrderNum($orderNum){
 }
 
 // READ 주문 상태명으로 주문 코드 알아내기
-function getStatusCodeByStatusName($statusName){
+function getStatusCodeByStatusName($statusName)
+{
     $pdo = pdoSqlConnect();
     $query = "select statusCode from OrderStatusCode where statusName=?;";
 
@@ -1081,11 +1197,12 @@ function getStatusCodeByStatusName($statusName){
 }
 
 // UPDATE 주문 상태 업데이트
-function updateStatusCode($orderNum, $statusCode){
+function updateStatusCode($orderNum, $statusCode)
+{
     // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
-    $orderDate = explode('-',$orderNum)[0];
-    $orderIdx = explode('-',$orderNum)[1];
-    $userIdx = explode('-',$orderNum)[2];
+    $orderDate = explode('-', $orderNum)[0];
+    $orderIdx = explode('-', $orderNum)[1];
+    $userIdx = explode('-', $orderNum)[2];
 
     $pdo = pdoSqlConnect();
     $query = "update Orders set orderStatus= ? where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx=?;";

@@ -86,12 +86,74 @@ try {
         case "getRecommendedProducts":
             http_response_code(200);
 
+            // 쿼리스트링이 설정안된경우엔 다 보여주자.
+            if (!isset($_GET['page'])) {
+                //          비회원의 추천상품 조회는 가장 잘 팔리는 순서대로 반환
+                if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
+                    $result = getAllRecommendedProd(null);
+                    $res->result = $result;
+                    $res->isSuccess = TRUE;
+                    $res->code = 100;
+                    $res->message = "조회 성공";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+                }
+
+                // 회원의 경우 가장 최근에 본 상품의 카테고리의 부모 카테고리에 속한 아이템들 중에서 가장 많이 팔리는 순으로 반환
+                $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
+
+                if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                    $res->isSuccess = FALSE;
+                    $res->code = 201;
+                    $res->message = "유효하지 않은 토큰입니다";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    addErrorLogs($errorLogs, $res, $req);
+                    break;
+                }
+
+                $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+                $parentsCategory = getLastestViewedCategoryParents($userIdx);
+
+                // 최근 본 상품이 없다면, 그냥 비회원과 마찬가지로 조회한다.
+                if ($parentsCategory == false) {
+                    $result = getAllRecommendedProd($userIdx);
+                    $res->result = $result;
+                    $res->isSuccess = TRUE;
+                    $res->code = 100;
+                    $res->message = "조회 성공";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    return;
+                }
+
+                // 최근 본 상품이 있다면 추천해서 조회
+                $result = getAllRecommendedProdByCate($userIdx, $parentsCategory);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "조회 성공";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+
             // 페이지 넘버
-            $page = $_GET['page'] * 10;
+            $page = $_GET['page'];
+            if (!preg_match("/^[0-9]/i", $page)) {
+                $res->isSuccess = false;
+                $res->message = "page 값은 숫자만 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
 
 //          비회원의 추천상품 조회는 가장 잘 팔리는 순서대로 반환
             if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
-                $res->result = getRecommendedProd(null);
+                $result = getRecommendedProd(null, $page);
+                if (empty($result)) {
+                    $res->isSuccess = false;
+                    $res->message = "존재하지 않는 페이지입니다.";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+                }
+                $res->result = $result;
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "조회 성공";
@@ -116,7 +178,14 @@ try {
 
             // 최근 본 상품이 없다면, 그냥 비회원과 마찬가지로 조회한다.
             if ($parentsCategory == false) {
-                $res->result = getRecommendedProd($userIdx);
+                $result = getRecommendedProd($userIdx, $page);
+                if (empty($result)) {
+                    $res->isSuccess = false;
+                    $res->message = "존재하지 않는 페이지입니다.";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+                }
+                $res->result = $result;
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "조회 성공";
@@ -125,7 +194,14 @@ try {
             }
 
             // 최근 본 상품이 있다면 추천해서 조회
-            $res->result = getRecommendedProdByCate($userIdx, $parentsCategory);
+            $result = getRecommendedProdByCate($userIdx, $parentsCategory, $page);
+            if (empty($result)) {
+                $res->isSuccess = false;
+                $res->message = "존재하지 않는 페이지입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";
@@ -139,9 +215,59 @@ try {
 */
         case "getNewProducts":
             http_response_code(200);
-            // 회원이 접속할때와 비회원이 들어올때를 나누자.
+
+//             쿼리스트링 설정이 안됀경우에는 그냥 다 보여주자.
+            if (!isset($_GET['page'])) {
+                if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
+                    $result = getAllNewProducts(null);
+                    $res->result = $result;
+                    $res->isSuccess = TRUE;
+                    $res->code = 100;
+                    $res->message = "조회 성공";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    return;
+                }
+
+                $jwt = $_SERVER['HTTP_X_ACCESS_TOKEN'];
+                if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
+                    $res->isSuccess = FALSE;
+                    $res->code = 201;
+                    $res->message = "유효하지 않은 토큰입니다";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    addErrorLogs($errorLogs, $res, $req);
+                    break;
+                }
+                $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
+
+                $result = getAllNewProducts($userIdx);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "조회 성공";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+
+            $page = $_GET['page'];
+            if (!preg_match("/^[0-9]/i", $page)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "page 값은 숫자만 입력하세요.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+
             if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
-                $res->result = getNewProducts(null);
+                $result = getNewProducts(null, $page);
+                if (empty($result)) {
+                    $res->isSuccess = false;
+                    $res->code = 200;
+                    $res->message = "존재하지 않는 페이지입니다.";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+                }
+                $res->result = $result;
                 $res->isSuccess = TRUE;
                 $res->code = 100;
                 $res->message = "조회 성공";
@@ -160,7 +286,15 @@ try {
             }
             $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
-            $res->result = getNewProducts($userIdx);
+            $result = getNewProducts($userIdx, $page);
+            if (empty($result)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "존재하지 않는 페이지입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "조회 성공";
@@ -445,7 +579,7 @@ try {
             $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
 
             // 유저인덱스를 기반으로 자신의 서랍 목록을 조회한다.
-            $result=getDrawersByUserIdx($userIdx);
+            $result = getDrawersByUserIdx($userIdx);
 
 
             // 섬네일을 최대 4개, 리스트 형태로 반환해
