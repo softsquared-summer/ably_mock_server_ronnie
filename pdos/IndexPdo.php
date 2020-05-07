@@ -322,20 +322,13 @@ function getNewProducts($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-#        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
-         left join (select productIdx, sum(number) as purchaseCnt
-                    from Orders
-                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus < 210
-                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail='Y'
+         inner join Market M on P.marketIdx = M.marketIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 where timestampdiff(day, P.createdAt, now()) <= 3
 order by P.createdAt DESC;";
 
@@ -367,18 +360,16 @@ function getNewBestProducts($userIdx)
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail='Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus and orderStatus < 210
                        or orderStatus = 333
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 where timestampdiff(day, P.createdAt, now()) <= 3
-#   and !isnull(purchaseCnt)
 order by purchaseCnt DESC
 limit 10;";
 
@@ -460,7 +451,7 @@ function getProductDetail($productIdx)
        if(EXISTS(select * from ProductHeart), 'N', 'N') isMyHeart,
        M.*
 from Product P
-         left join (select M.marketIdx,
+         inner join (select M.marketIdx,
                            marketName,
                            group_concat(concat('#', tagName) separator ' ') marketHashTags,
                            profileImgUrl as                                 marketThumbnailUrl
