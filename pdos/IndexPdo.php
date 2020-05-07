@@ -230,7 +230,7 @@ from Product P
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
          left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
-order by purchaseCnt DESC, P.createdAt DESC;";
+order by purchaseCnt DESC, P.createdAt DESC ?;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
@@ -269,7 +269,7 @@ from Product P
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
          left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
          inner join ProductCategory PC on P.categoryIdx = PC.categoryIdx and parents = ?
-order by purchaseCnt DESC, P.createdAt DESC;";
+order by purchaseCnt DESC, P.createdAt DESC limit 1, 10";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx, $parents]);
@@ -899,24 +899,25 @@ from (select ProductHeart.drawerIdx,
              ifnull(drawerName, '기본 서랍') drawerName,
              count(*)                    productCnt
       from ProductHeart
-               left join (select userIdx, drawerIdx, drawerName from ProductHeartDrawer where isDeleted = 'N') PHD
-                         on ProductHeart.hearterIdx = PHD.userIdx and ProductHeart.drawerIdx = PHD.drawerIdx
+               left join ProductHeartDrawer PHD
+                         on ProductHeart.hearterIdx = PHD.userIdx and ProductHeart.drawerIdx = PHD.drawerIdx and
+                            PHD.isDeleted = 'N'
       where ProductHeart.isDeleted = 'N'
         and hearterIdx = ?
       group by ProductHeart.drawerIdx) drawerInfo
          inner join (select drawerIdx, group_concat(thumbnailUrl) thumbnailUrl
-                     from (select hearterIdx, drawerIdx, PI.productIdx, imgUrl thumbnailUrl, ProductHeart.createdAt
+                     from (select drawerIdx, imgUrl thumbnailUrl
                            from ProductHeart
-                                    inner join ProductImg PI on ProductHeart.productIdx = PI.productIdx
+                                    inner join ProductImg PI
+                                               on ProductHeart.productIdx = PI.productIdx and PI.isDeleted = 'N' and
+                                                  PI.isThumnail = 'Y'
                            where ProductHeart.isDeleted = 'N'
-                             and PI.isDeleted = 'N'
-                             and isThumnail = 'Y'
                              and hearterIdx = ?
                            order by drawerIdx, ProductHeart.createdAt DESC) T
                      group by drawerIdx) thumbnailInfo on drawerInfo.drawerIdx = thumbnailInfo.drawerIdx;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userIdx, $userIdx]);
+    $st->execute([$userIdx,$userIdx]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -924,6 +925,7 @@ from (select ProductHeart.drawerIdx,
     $pdo = null;
     return $res;
 }
+
 
 
 //    READ 유저 인덱스로 서랍 목록 가져오기

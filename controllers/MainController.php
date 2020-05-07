@@ -377,6 +377,9 @@ try {
         case "getRecommendedProducts":
             http_response_code(200);
 
+            // 페이지 넘버
+            $page = $_GET['page'] * 10;
+
 //          비회원의 추천상품 조회는 가장 잘 팔리는 순서대로 반환
             if (!isset($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
                 $res->result = getRecommendedProd(null);
@@ -385,7 +388,6 @@ try {
                 $res->message = "조회 성공";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 break;
-
             }
 
             // 회원의 경우 가장 최근에 본 상품의 카테고리의 부모 카테고리에 속한 아이템들 중에서 가장 많이 팔리는 순으로 반환
@@ -1155,7 +1157,7 @@ try {
 
             switch ($reqStatusName) {
                 case "취소 요청":
-                    if ($nowStatusCode>=200){
+                    if ($nowStatusCode >= 200) {
                         $res->isSuccess = false;
                         $res->code = 200;
                         $res->message = "배송 중에는 취소 요청이 불가능합니다.";
@@ -1164,7 +1166,7 @@ try {
                     }
                     break;
                 case "반품 요청":
-                    if ($nowStatusCode<200){
+                    if ($nowStatusCode < 200) {
                         $res->isSuccess = false;
                         $res->code = 200;
                         $res->message = "반품 요청은 배송 시작 이후부터 가능합니다.";

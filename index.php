@@ -26,29 +26,32 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
 
 //    에이블리
 
-    $r->addRoute('POST', '/signUp', ['MainController', 'createUser']);
-    $r->addRoute('POST', '/signIn', ['MainController', 'createLogin']);
-    $r->addRoute('GET', '/signIn', ['MainController', 'validJwt']);
-    $r->addRoute('GET', '/users', ['MainController', 'getUsers']);
-    $r->addRoute('GET', '/banner', ['MainController', 'getBanner']);
+    // User
+    $r->addRoute('POST', '/signUp', ['UserController', 'createUser']);
+    $r->addRoute('POST', '/signIn', ['UserController', 'createLogin']);
+    $r->addRoute('GET', '/signIn', ['UserController', 'validJwt']);
+    $r->addRoute('GET', '/users', ['UserController', 'getUsers']);
 
-    $r->addRoute('GET', '/recommended-products', ['MainController', 'getRecommendedProducts']);
-    $r->addRoute('GET', '/new-products', ['MainController', 'getNewProducts']);
-    $r->addRoute('GET', '/new-products/best', ['MainController', 'getNewBestProducts']);
+    // Product
+    $r->addRoute('GET', '/banner', ['ProductController', 'getBanner']);
+    $r->addRoute('GET', '/recommended-products', ['ProductController', 'getRecommendedProducts']);
+    $r->addRoute('GET', '/new-products', ['ProductController', 'getNewProducts']);
+    $r->addRoute('GET', '/new-products/best', ['ProductController', 'getNewBestProducts']);
+    $r->addRoute('GET', '/products/{productIdx}', ['ProductController', 'getProductDetail']);
+    $r->addRoute('GET', '/products/{productIdx}/options', ['ProductController', 'getOptions']);
+    $r->addRoute('POST', '/product-hearts/{productIdx}', ['ProductController', 'createProductHearts']);
+    $r->addRoute('POST', '/drawers', ['ProductController', 'createDrawer']);
+    $r->addRoute('GET', '/drawers', ['ProductController', 'getDrawers']);
+    $r->addRoute('GET', '/drawers/{drawerIdx}', ['ProductController', 'getDrawerDetail']);
+    $r->addRoute('DELETE', '/drawers/{drawerIdx}', ['ProductController', 'deleteDrawer']);
 
-    $r->addRoute('GET', '/products/{productIdx}', ['MainController', 'getProductDetail']);
-    $r->addRoute('GET', '/products/{productIdx}/options', ['MainController', 'getOptions']);
+    // Order
+    $r->addRoute('POST', '/orders', ['OrderController', 'createOrder']);
+    $r->addRoute('GET', '/orders', ['OrderController', 'getOrders']);
+    $r->addRoute('GET', '/orders/{orderNum}', ['OrderController', 'getOrderDetail']); // 주문 상세 조회, 작업 중
+    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['OrderController', 'modifyOrderStatus']);
 
-    $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
-    $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
-    $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 주문 상세 조회, 작업 중
-    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['MainController', 'modifyOrderStatus']); // 주문 상태 변경, 작업 중
 
-    $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
-    $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);
-    $r->addRoute('GET', '/drawers', ['MainController', 'getDrawers']);
-    $r->addRoute('GET', '/drawers/{drawerIdx}', ['MainController', 'getDrawerDetail']);
-    $r->addRoute('DELETE', '/drawers/{drawerIdx}', ['MainController', 'deleteDrawer']);
 
 
 
@@ -113,30 +116,33 @@ switch ($routeInfo[0]) {
                 $vars = $routeInfo[2];
                 require './controllers/MainController.php';
                 break;
-            /*case 'EventController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/EventController.php';
+            case 'UserController':
+                $handler = $routeInfo[1][1];
+                $vars = $routeInfo[2];
+                require './controllers/UserController.php';
                 break;
             case 'ProductController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
+                $handler = $routeInfo[1][1];
+                $vars = $routeInfo[2];
                 require './controllers/ProductController.php';
                 break;
-            case 'SearchController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/SearchController.php';
+            case 'OrderController':
+                $handler = $routeInfo[1][1];
+                $vars = $routeInfo[2];
+                require './controllers/OrderController.php';
                 break;
-            case 'ReviewController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/ReviewController.php';
-                break;
-            case 'ElementController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/ElementController.php';
-                break;
-            case 'AskFAQController':
-                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/AskFAQController.php';
-                break;*/
+//            case 'ReviewController':
+//                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
+//                require './controllers/ReviewController.php';
+//                break;
+//            case 'ElementController':
+//                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
+//                require './controllers/ElementController.php';
+//                break;
+//            case 'AskFAQController':
+//                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
+//                require './controllers/AskFAQController.php';
+//                break;
         }
 
         break;
