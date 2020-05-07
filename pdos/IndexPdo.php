@@ -217,22 +217,19 @@ function getRecommendedProd($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
-
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus and orderStatus < 210
-                       or orderStatus = 333
+                    where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
@@ -247,7 +244,7 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getRecommendedProdByCate($userIdx, $categoryIdx)
+function getRecommendedProdByCate($userIdx, $parents)
 {
     $pdo = pdoSqlConnect();
     // 여기 쿼리에 where에 카테고리를 추가하고, 많이 팔리고, 최신 순서대로 정렬한다.
@@ -258,25 +255,24 @@ function getRecommendedProdByCate($userIdx, $categoryIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                           purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail = 'Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus < 210
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
-where categoryIdx = ?
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
+         inner join ProductCategory PC on P.categoryIdx = PC.categoryIdx and parents = ?
 order by purchaseCnt DESC, P.createdAt DESC;";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userIdx, $categoryIdx]);
+    $st->execute([$userIdx, $parents]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -287,15 +283,17 @@ order by purchaseCnt DESC, P.createdAt DESC;";
 }
 
 //    READ
-function getLastestViewedCategory($userIdx)
+function getLastestViewedCategoryParents($userIdx)
 {
     $pdo = pdoSqlConnect();
-    $query = "select categoryIdx
-from Product P
-         inner join VisitHistory VH on P.productIdx = VH.productIdx
-where VH.visitorIdx = ?
-order by VH.visitTime DESC
-limit 1;";
+    $query = "select parents
+from ProductCategory
+         inner join (select categoryIdx
+                     from Product P
+                              inner join VisitHistory VH on P.productIdx = VH.productIdx
+                     where VH.visitorIdx = ?
+                     order by VH.visitTime DESC
+                     limit 1) categoryInfo on ProductCategory.categoryIdx = categoryInfo.categoryIdx;";
 
     $st = $pdo->prepare($query);
     $st->execute([$userIdx]);
@@ -309,7 +307,7 @@ limit 1;";
         return false;
     }
 
-    return intval($res[0]['categoryIdx']);
+    return intval($res[0]['parents']);
 }
 
 //    READ
@@ -324,20 +322,13 @@ function getNewProducts($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-#        concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
-         left join (select productIdx, sum(number) as purchaseCnt
-                    from Orders
-                             inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
-                    where 100 <= orderStatus < 210
-                    group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail='Y'
+         inner join Market M on P.marketIdx = M.marketIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 where timestampdiff(day, P.createdAt, now()) <= 3
 order by P.createdAt DESC;";
 
@@ -364,23 +355,21 @@ function getNewBestProducts($userIdx)
        M.marketIdx,
        marketName,
        if(char_length(productName) > 15, concat(left(productName, 15), '…'), productName)           productName,
-       concat(format(purchaseCnt, 0), '개 구매중')                                                      purchaseCnt,
+       ifnull(concat(format(purchaseCnt, 0), '개 구매중'), 0)                                                      purchaseCnt,
        if(isnull(hearterIdx), 'N', 'Y')                                                             isMyHeart,
        isHotDeal,
        (if(timestampdiff(day, P.createdAt, now()) <= 3, 'Y', 'N'))                               as isNew
 from Product P
-         left join (select productIdx, imgUrl from ProductImg where isThumnail = 'Y') PI on P.productIdx = PI.productIdx
-         left join Market M on P.marketIdx = M.marketIdx
+         inner join ProductImg PI on P.productIdx = PI.productIdx and isThumnail='Y'
+         inner join Market M on P.marketIdx = M.marketIdx
          left join (select productIdx, sum(number) as purchaseCnt
                     from Orders
                              inner join ProductStock PS on Orders.detailedProductIdx = PS.detailedProductIdx
                     where 100 <= orderStatus and orderStatus < 210
                        or orderStatus = 333
                     group by productIdx) purchseCntInfo on P.productIdx = purchseCntInfo.productIdx
-         left join (select hearterIdx, productIdx from ProductHeart where hearterIdx = ? and isDeleted = 'N') HeartInfo
-                   on P.productIdx = HeartInfo.productIdx
+         left join ProductHeart PH on P.productIdx = PH.productIdx and PH.isDeleted = 'N' and hearterIdx = ?
 where timestampdiff(day, P.createdAt, now()) <= 3
-#   and !isnull(purchaseCnt)
 order by purchaseCnt DESC
 limit 10;";
 
@@ -462,7 +451,7 @@ function getProductDetail($productIdx)
        if(EXISTS(select * from ProductHeart), 'N', 'N') isMyHeart,
        M.*
 from Product P
-         left join (select M.marketIdx,
+         inner join (select M.marketIdx,
                            marketName,
                            group_concat(concat('#', tagName) separator ' ') marketHashTags,
                            profileImgUrl as                                 marketThumbnailUrl
@@ -591,6 +580,7 @@ function createOrderInfo($orderIdx, $userIdx, $detailedProductIdx, $number, $pay
 
     switch ($paymentType) {
         case "DEPOSIT":
+
             $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount,
                     depositBank, depositor, cashReceipt, orderStatus)
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
@@ -599,13 +589,13 @@ values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
             $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $depositBank, $depositor, $cashReceipt, $orderStatus]);
             break;
 
-
         default:
-            $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount, orderStatus)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
+
+            $query = "insert into Orders (orderIdx, userIdx, detailedProductIdx, number, paymentType, refundBank, refundOwner, refundAccount, orderStatus, cashReceipt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
             $st = $pdo->prepare($query);
-            $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus]);
+            $st->execute([$orderIdx, $userIdx, $detailedProductIdx, $number, $paymentType, $refundBank, $refundOwner, $refundAccount, $orderStatus, $cashReceipt]);
             break;
     }
     $st = null;
@@ -1015,6 +1005,96 @@ function deleteDrawerProducts($hearterIdx, $drawerIdx)
     $pdo = null;
 }
 
+//    READ 유효한 주문 번호 확인
+function isValidOrderNum($orderNum)
+{
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+
+    $pdo = pdoSqlConnect();
+    $query = "select EXISTS(select * from Orders where date_format(orderDate, '%Y%m%d')=? and orderIdx=? and userIdx = ?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+//    READ 유효한 주문 상태명 확인
+function isValidOrderName($orderName)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select EXISTS(select * from OrderStatusCode where statusName=?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderName]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+// READ 주문 번호로 주문 상태 코드 알아내기
+function getOrderStatusByOrderNum($orderNum){
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+    $pdo = pdoSqlConnect();
+    $query = "select distinct orderStatus from Orders where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['orderStatus']);
+}
+
+// READ 주문 상태명으로 주문 코드 알아내기
+function getStatusCodeByStatusName($statusName){
+    $pdo = pdoSqlConnect();
+    $query = "select statusCode from OrderStatusCode where statusName=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$statusName]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0]['statusCode'];
+}
+
+// UPDATE 주문 상태 업데이트
+function updateStatusCode($orderNum, $statusCode){
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+    $pdo = pdoSqlConnect();
+    $query = "update Orders set orderStatus= ? where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$statusCode, $orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $st = null;
+    $pdo = null;
+}
 
 
 // UPDATE
