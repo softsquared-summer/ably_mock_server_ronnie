@@ -1005,6 +1005,96 @@ function deleteDrawerProducts($hearterIdx, $drawerIdx)
     $pdo = null;
 }
 
+//    READ 유효한 주문 번호 확인
+function isValidOrderNum($orderNum)
+{
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+
+    $pdo = pdoSqlConnect();
+    $query = "select EXISTS(select * from Orders where date_format(orderDate, '%Y%m%d')=? and orderIdx=? and userIdx = ?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+//    READ 유효한 주문 상태명 확인
+function isValidOrderName($orderName)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select EXISTS(select * from OrderStatusCode where statusName=?) as exist;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderName]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['exist']);
+}
+
+// READ 주문 번호로 주문 상태 코드 알아내기
+function getOrderStatusByOrderNum($orderNum){
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+    $pdo = pdoSqlConnect();
+    $query = "select distinct orderStatus from Orders where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return intval($res[0]['orderStatus']);
+}
+
+// READ 주문 상태명으로 주문 코드 알아내기
+function getStatusCodeByStatusName($statusName){
+    $pdo = pdoSqlConnect();
+    $query = "select statusCode from OrderStatusCode where statusName=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$statusName]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+    return $res[0]['statusCode'];
+}
+
+// UPDATE 주문 상태 업데이트
+function updateStatusCode($orderNum, $statusCode){
+    // orderNum에서 주문일자, 주문 인덱스, 유저 인덱스 파싱
+    $orderDate = explode('-',$orderNum)[0];
+    $orderIdx = explode('-',$orderNum)[1];
+    $userIdx = explode('-',$orderNum)[2];
+
+    $pdo = pdoSqlConnect();
+    $query = "update Orders set orderStatus= ? where date_format(orderDate, '%Y%m%d')=? and OrderIdx=? and userIdx=?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$statusCode, $orderDate, $orderIdx, $userIdx]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $st = null;
+    $pdo = null;
+}
 
 
 // UPDATE

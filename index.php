@@ -42,8 +42,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('POST', '/orders', ['MainController', 'createOrder']);
     $r->addRoute('GET', '/orders', ['MainController', 'getOrders']);
     $r->addRoute('GET', '/orders/{orderNum}', ['MainController', 'getOrderDetail']); // 주문 상세 조회, 작업 중
-    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['MainController', 'modifyStatus']); // 주문 상태 변경, 작업 중
-    $r->addRoute('DELETE', '/orders/{orderNum}', ['MainController', 'deleteOrder']); // 주문 취소, 작업 중
+    $r->addRoute('PATCH', '/orders/{orderNum}/status', ['MainController', 'modifyOrderStatus']); // 주문 상태 변경, 작업 중
 
     $r->addRoute('POST', '/product-hearts/{productIdx}', ['MainController', 'createProductHearts']);
     $r->addRoute('POST', '/drawers', ['MainController', 'createDrawer']);

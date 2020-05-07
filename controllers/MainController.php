@@ -1108,6 +1108,7 @@ try {
                 $orderInfo[$i]['productInfo'] = getProductInfoByOrderNum($orderNum);
             }
 
+            $orderInfo = array_reverse($orderInfo);
             $result['orderInfo'] = $orderInfo;
 
             $res->result = $result;
@@ -1123,60 +1124,70 @@ try {
 * API Name : 주문 상태 변경 API
 * 마지막 수정 날짜 : 20.05.06
 */
-        case "modifyStatus":
+        case "modifyOrderStatus":
             http_response_code(200);
 
-            // 토큰 검사
-            if (!isset($_SERVER["HTTP_X_ACCESS_TOKEN"])) {
-                $res->isSuccess = FALSE;
-                $res->code = 201;
-                $res->message = "토큰을 입력하세요.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                addErrorLogs($errorLogs, $res, $req);
-                return;
-            }
+            // 주문번호 검증
+            $orderNum = $vars['orderNum'];
 
-            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
-
-            if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
-                $res->isSuccess = FALSE;
-                $res->code = 201;
-                $res->message = "유효하지 않은 토큰입니다";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                addErrorLogs($errorLogs, $res, $req);
-                return;
-            }
-
-            $userIdx = getDataByJWToken($jwt, JWT_SECRET_KEY)->userIdx;
-
-            $result = [];
-            $result = getShippingInfoByUserIDx($userIdx);
-
-            // 유저 인덱스로 주문 번호와, 날짜를 뽑아내보자
-            $orderInfo = getOrderNumDateByUserIdx($userIdx);
-            if (empty($orderInfo)) {
-                $res->isSuccess = FALSE;
+            if (!isValidOrderNum($orderNum)) {
+                $res->isSuccess = false;
                 $res->code = 200;
-                $res->message = "주문목록이 없어요!";
+                $res->message = "올바른 주문번호가 아닙니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
-                addErrorLogs($errorLogs, $res, $req);
                 return;
             }
 
-            // 각 주문 번호에 해당하는 상품 정보를 추가하자.
-            for ($i = 0; $i < sizeof($orderInfo); $i++) {
-                $orderNum = $orderInfo[$i]['orderNum'];
-                $orderInfo[$i]['productInfo'] = getProductInfoByOrderNum($orderNum);
+            // 변경하고 싶은 상태
+            $reqStatusName = $req->statusName;
+            // 상태명 validation
+            if (!isValidOrderName($reqStatusName)) {
+                $res->isSuccess = false;
+                $res->code = 200;
+                $res->message = "올바른 상태명이 아닙니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+            // 현재 상태에 따라 validation할 것
+            $nowStatusCode = getOrderStatusByOrderNum($orderNum);
+            $reqStatusCode = getStatusCodeByStatusName($reqStatusName);
+
+
+            switch ($reqStatusName) {
+                case "취소 요청":
+                    if ($nowStatusCode>=200){
+                        $res->isSuccess = false;
+                        $res->code = 200;
+                        $res->message = "배송 중에는 취소 요청이 불가능합니다.";
+                        echo json_encode($res, JSON_NUMERIC_CHECK);
+                        exit;
+                    }
+                    break;
+                case "반품 요청":
+                    if ($nowStatusCode<200){
+                        $res->isSuccess = false;
+                        $res->code = 200;
+                        $res->message = "반품 요청은 배송 시작 이후부터 가능합니다.";
+                        echojson_encode($res, JSON_NUMERIC_CHECK);
+                        exit;
+                    }
+                    break;
+
+                default:
+                    break;
             }
 
-            $result['orderInfo'] = $orderInfo;
-
+            updateStatusCode($orderNum, $reqStatusCode);
+            $result = [];
+            $result['orderNum'] = $orderNum;
+            $result['statusName'] = $reqStatusName;
             $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
-            $res->message = "성공";
+            $res->message = "요청하신 상태로 변경했습니다.";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
+
 
         /*
 * API No. 18
@@ -1277,7 +1288,7 @@ try {
                 return;
             }
             // 기본 서랍은 삭제 불가
-            if ($drawerIdx==-1){
+            if ($drawerIdx == -1) {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "기본 서랍은 삭제할 수 없습니다.";
@@ -1296,8 +1307,6 @@ try {
             $res->message = "성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             return;
-
-
 
 
     }
